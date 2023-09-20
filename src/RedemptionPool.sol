@@ -14,18 +14,24 @@ contract RedemptionPool is Ownable {
 
     address public constant OWNER = address(1337);
     uint256 public constant DURATION = 30 days;
+    uint256 public constant BIPS = 10_000;
     ERC20 public constant GRO = ERC20(address(0x3Ec8798B81485A254928B70CDA1cf0A2BB0B74D7));
+    // CUSDC
+    ERC20 public constant ASSET = ERC20(address(0x39AA39c021dfbaE8faC545936693aC917d5E7563));
     /////////////////////////////////////////////////////////////////////////////
     //                                  Storage                                //
     /////////////////////////////////////////////////////////////////////////////
     uint256 public immutable deadline;
     mapping(address => uint256) private _balances;
     uint256 public totalDeposited;
-
+    uint256 public totalAssets;
     /////////////////////////////////////////////////////////////////////////////
     //                                  Events                                 //
     /////////////////////////////////////////////////////////////////////////////
+
     event Deposit(address indexed user, uint256 amount);
+    event AssetWithdrawal(address indexed user, uint256 amount);
+    event AssetsPulled(uint256 amount);
 
     constructor() Ownable() {
         _transferOwnership(OWNER);
@@ -33,6 +39,9 @@ contract RedemptionPool is Ownable {
         deadline = block.timestamp + DURATION;
     }
 
+    /////////////////////////////////////////////////////////////////////////////
+    //                                  CORE                                   //
+    /////////////////////////////////////////////////////////////////////////////
     function deposit(uint256 _amount) external {
         // Checks that the deadline has not passed
         if (block.timestamp > deadline) {
@@ -46,5 +55,44 @@ contract RedemptionPool is Ownable {
         totalDeposited += _amount;
         // Emits the Deposit event
         emit Deposit(msg.sender, _amount);
+    }
+
+    /// @notice Allow to withdraw cUSDC based on amount of GRO tokens deposited per user
+    function withdraw() external {
+        // Checks that the deadline has passed
+        if (block.timestamp <= deadline) {
+            revert RedemptionErrors.DeadlineNotExceeded();
+        }
+        // Gets the amount of GRO tokens deposited by the user
+        uint256 amount = _balances[msg.sender];
+        // Checks that the user has deposited GRO tokens
+        if (amount == 0) {
+            revert RedemptionErrors.NoDeposits();
+        }
+        // Calculate user's share from totalDeposited
+        uint256 userShare = amount * BIPS / totalDeposited;
+        // Calculate the amount of cUSDC to withdraw
+        uint256 withdrawAmount = totalAssets * userShare / BIPS;
+        // Decreases the balance of the user by the amount
+        _balances[msg.sender] -= amount;
+        // Send the cUSDC to the user
+        ASSET.safeTransfer(msg.sender, withdrawAmount);
+        // Emits the Withdraw event
+        emit AssetWithdrawal(msg.sender, withdrawAmount);
+    }
+
+    /////////////////////////////////////////////////////////////////////////////
+    //                              Permissioned funcs                         //
+    /////////////////////////////////////////////////////////////////////////////
+    function sweep(address _token) external onlyOwner {
+        // Transfers the tokens to the owner
+        ERC20(_token).safeTransfer(OWNER, ERC20(_token).balanceOf(address(this)));
+    }
+
+    /// @notice Pulls assets from the msig
+    function pullAssets(uint256 _amount) external onlyOwner {
+        ASSET.safeTransferFrom(owner(), address(this), _amount);
+        totalAssets += ASSET.balanceOf(address(this));
+        emit AssetsPulled(_amount);
     }
 }
