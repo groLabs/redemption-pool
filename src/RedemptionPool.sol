@@ -75,6 +75,12 @@ contract RedemptionPool is Ownable {
         return _userBalance[user] * totalAssetsDeposited / totalGRO - _userClaims[user];
     }
 
+    /// @notice Returns the amount of GRO user has deposited
+    /// @param user address of the user
+    function getUserBalance(address user) external view returns (uint256) {
+        return _userBalance[user];
+    }
+
     /// @notice Returns claimed cUSDC for a user
     /// @param user address of the user
     function getUserClaim(address user) external view returns (uint256) {
