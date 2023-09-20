@@ -14,7 +14,7 @@ contract RedemptionPool is Ownable {
     /////////////////////////////////////////////////////////////////////////////
 
     uint256 public constant DURATION = 30 days;
-    uint256 internal immutable DEADLINE;
+    uint256 public immutable DEADLINE;
 
     uint256 internal constant BIPS = 10_000;
     uint256 internal constant PRECISION = 1e18;
