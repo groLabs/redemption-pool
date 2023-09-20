@@ -163,4 +163,50 @@ contract TestRedemptionPool is BaseFixture {
 
         assertEq(CUSDC.balanceOf(alice), _assetAmount);
     }
+
+    function testCantClaimIfDidntDeposit(uint256 _depositAmnt, uint256 _assetAmount) public {
+        vm.assume(_depositAmnt > 1e18);
+        vm.assume(_depositAmnt < 100_000_000_000e18);
+        vm.assume(_assetAmount > 1e6);
+        vm.assume(_assetAmount < 100_000_000e6);
+        setStorage(alice, GRO.balanceOf.selector, address(GRO), _depositAmnt);
+        // Approve GRO to be spent by the RedemptionPool:
+        vm.prank(alice);
+        GRO.approve(address(redemptionPool), _depositAmnt);
+
+        // Deposit GRO into the RedemptionPool:
+        vm.prank(alice);
+        redemptionPool.deposit(_depositAmnt);
+        // Pull assets from the DAO
+        pullCUSDC(_assetAmount);
+        vm.warp(redemptionPool.DEADLINE() + 1);
+        // Bob should be not be able to claim
+        vm.prank(bob);
+        vm.expectRevert(abi.encodeWithSelector(RedemptionErrors.NoUserBalance.selector));
+        redemptionPool.claim();
+    }
+
+    function testCantClaimMultipleTimes(uint256 _depositAmnt, uint256 _assetAmount) public {
+        vm.assume(_depositAmnt > 1e18);
+        vm.assume(_depositAmnt < 100_000_000_000e18);
+        vm.assume(_assetAmount > 1e6);
+        vm.assume(_assetAmount < 100_000_000e6);
+        setStorage(alice, GRO.balanceOf.selector, address(GRO), _depositAmnt);
+        // Approve GRO to be spent by the RedemptionPool:
+        vm.prank(alice);
+        GRO.approve(address(redemptionPool), _depositAmnt);
+
+        // Deposit GRO into the RedemptionPool:
+        vm.prank(alice);
+        redemptionPool.deposit(_depositAmnt);
+        // Pull assets from the DAO
+        pullCUSDC(_assetAmount);
+        vm.warp(redemptionPool.DEADLINE() + 1);
+        vm.startPrank(alice);
+        redemptionPool.claim();
+        // On second claim should revert
+        vm.expectRevert(abi.encodeWithSelector(RedemptionErrors.NoUserClaim.selector));
+        redemptionPool.claim();
+        vm.stopPrank();
+    }
 }

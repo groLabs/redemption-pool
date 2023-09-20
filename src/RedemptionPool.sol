@@ -133,7 +133,7 @@ contract RedemptionPool is Ownable {
         if (block.timestamp <= DEADLINE) {
             revert RedemptionErrors.DeadlineExceeded();
         }
-        if (_userBalance[msg.sender] < 0) {
+        if (_userBalance[msg.sender] <= 0) {
             revert RedemptionErrors.NoUserBalance();
         }
         uint256 userClaim = getSharesAvailable(msg.sender);
