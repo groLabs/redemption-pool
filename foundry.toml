@@ -2,5 +2,11 @@
 src = "src"
 out = "out"
 libs = ["lib"]
+remappings = [
+    "forge-std/=lib/forge-std/src/",
+    "@openzeppelin/=lib/openzeppelin-contracts/contracts/",
+]
+solc_version = "0.8.20"
 
-# See more config options https://github.com/foundry-rs/foundry/tree/master/config
+[rpc_endpoints]
+mainnet = "https://eth-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}"
