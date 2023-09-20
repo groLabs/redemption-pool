@@ -49,4 +49,46 @@ contract TestRedemptionPool is BaseFixture {
         redemptionPool.deposit(_depositAmnt);
         vm.stopPrank();
     }
+
+    /// @dev test can withdraw after deposit
+    function testWithdrawHappy(uint256 _depositAmnt) public {
+        vm.assume(_depositAmnt > 1e18);
+        // Give user some GRO:
+        setStorage(alice, GRO.balanceOf.selector, address(GRO), _depositAmnt);
+        // Approve GRO to be spent by the RedemptionPool:
+        vm.prank(alice);
+        GRO.approve(address(redemptionPool), _depositAmnt);
+
+        // Deposit GRO into the RedemptionPool:
+        vm.prank(alice);
+        redemptionPool.deposit(_depositAmnt);
+
+        // Withdraw before deadline:
+        vm.prank(alice);
+        redemptionPool.withdraw(_depositAmnt);
+        // Checks:
+        assertEq(GRO.balanceOf(address(redemptionPool)), 0);
+        assertEq(GRO.balanceOf(alice), _depositAmnt);
+        assertEq(redemptionPool.getUserBalance(alice), 0);
+    }
+
+    /// @dev test cannot withdraw after deadline
+    function testWithdrawUnhappyDeadline(uint256 _depositAmnt) public {
+        vm.assume(_depositAmnt > 1e18);
+        // Give user some GRO:
+        setStorage(alice, GRO.balanceOf.selector, address(GRO), _depositAmnt);
+        // Approve GRO to be spent by the RedemptionPool:
+        vm.prank(alice);
+        GRO.approve(address(redemptionPool), _depositAmnt);
+
+        // Deposit GRO into the RedemptionPool:
+        vm.prank(alice);
+        redemptionPool.deposit(_depositAmnt);
+        vm.warp(redemptionPool.DEADLINE() + 1);
+        // Withdraw after deadline:
+        vm.startPrank(alice);
+        vm.expectRevert(abi.encodeWithSelector(RedemptionErrors.DeadlineExceeded.selector));
+        redemptionPool.withdraw(_depositAmnt);
+        vm.stopPrank();
+    }
 }

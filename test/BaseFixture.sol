@@ -39,4 +39,13 @@ contract BaseFixture is Test {
         uint256 slot = stdstore.target(_contract).sig(_selector).with_key(_user).find();
         vm.store(_contract, bytes32(slot), bytes32(value));
     }
+
+    /// @dev Helper function to
+    function pullCUSDC(uint256 amount) public {
+        setStorage(DAO, CUSDC.balanceOf.selector, address(CUSDC), type(uint96).max);
+        vm.startPrank(DAO);
+        CUSDC.approve(address(redemptionPool), amount);
+        redemptionPool.depositCUSDC(amount);
+        vm.stopPrank();
+    }
 }

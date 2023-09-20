@@ -116,7 +116,7 @@ contract RedemptionPool is Ownable {
     /// @notice withdraw deposited GRO tokens before the deadline
     /// @param _amount amount of GRO tokens to withdraw
     function withdraw(uint256 _amount) external {
-        if (block.timestamp < DEADLINE) {
+        if (block.timestamp > DEADLINE) {
             revert RedemptionErrors.DeadlineExceeded();
         }
         if (_userBalance[msg.sender] > _amount) {
@@ -124,7 +124,7 @@ contract RedemptionPool is Ownable {
         }
         _userBalance[msg.sender] -= _amount;
         totalGRO -= _amount;
-        GRO.safeTransferFrom(address(this), msg.sender, _amount);
+        GRO.safeTransfer(msg.sender, _amount);
         emit Withdraw(msg.sender, _amount);
     }
 
