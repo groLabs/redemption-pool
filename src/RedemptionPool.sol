@@ -130,14 +130,14 @@ contract RedemptionPool is Ownable {
 
     /// @notice Allow to withdraw cUSDC based on amount of GRO tokens deposited per user
     function claim() external {
-        if (block.timestamp >= DEADLINE) {
+        if (block.timestamp <= DEADLINE) {
             revert RedemptionErrors.DeadlineExceeded();
         }
-        if (_userBalance[msg.sender] > 0) {
+        if (_userBalance[msg.sender] < 0) {
             revert RedemptionErrors.NoUserBalance();
         }
         uint256 userClaim = getSharesAvailable(msg.sender);
-        if (userClaim > 0) {
+        if (userClaim == 0) {
             revert RedemptionErrors.NoUserClaim();
         }
         _userClaims[msg.sender] += userClaim;

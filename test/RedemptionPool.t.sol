@@ -130,4 +130,37 @@ contract TestRedemptionPool is BaseFixture {
     /////////////////////////////////////////////////////////////////////////////
     //                              Full flow                                  //
     /////////////////////////////////////////////////////////////////////////////
+
+    function testSingleUserHasAllShares(uint256 _depositAmnt, uint256 _assetAmount) public {
+        vm.assume(_depositAmnt > 1e18);
+        vm.assume(_depositAmnt < 100_000_000_000e18);
+        vm.assume(_assetAmount > 1e6);
+        vm.assume(_assetAmount < 100_000_000e6);
+
+        setStorage(alice, GRO.balanceOf.selector, address(GRO), _depositAmnt);
+        // Approve GRO to be spent by the RedemptionPool:
+        vm.prank(alice);
+        GRO.approve(address(redemptionPool), _depositAmnt);
+
+        // Deposit GRO into the RedemptionPool:
+        vm.prank(alice);
+        redemptionPool.deposit(_depositAmnt);
+
+        // Pull assets from the DAO
+        pullCUSDC(_assetAmount);
+
+        // Check user's shares
+        assertEq(redemptionPool.getSharesAvailable(alice), _assetAmount);
+
+        // Check ppfs
+        uint256 expectedPpfs = _assetAmount * 1e18 / _depositAmnt;
+        assertEq(redemptionPool.getPricePerShare(), expectedPpfs);
+
+        // Roll to deadline and claim
+        vm.warp(redemptionPool.DEADLINE() + 1);
+        vm.prank(alice);
+        redemptionPool.claim();
+
+        assertEq(CUSDC.balanceOf(alice), _assetAmount);
+    }
 }
