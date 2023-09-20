@@ -13,6 +13,9 @@ contract TestRedemptionPool is BaseFixture {
         assertTrue(true);
     }
 
+    /////////////////////////////////////////////////////////////////////////////
+    //                              Basic functionality                        //
+    /////////////////////////////////////////////////////////////////////////////
     /// @dev Basic test to check that the deposit function works
     function testDepositHappy(uint256 _depositAmnt) public {
         vm.assume(_depositAmnt > 1e18);
@@ -91,4 +94,40 @@ contract TestRedemptionPool is BaseFixture {
         redemptionPool.withdraw(_depositAmnt);
         vm.stopPrank();
     }
+
+    /// @dev Test for pulling in assets from the DAO
+    function testPullCUSDC(uint96 _amount) public {
+        vm.assume(_amount > 1e6);
+        vm.assume(_amount < 100_000_000e6);
+
+        pullCUSDC(_amount);
+
+        assertEq(CUSDC.balanceOf(address(redemptionPool)), _amount);
+    }
+
+    /// @dev Test sweeping CUSDC
+    function testSweep(uint96 _amount) public {
+        vm.assume(_amount > 1e6);
+        vm.assume(_amount < 100_000_000e6);
+
+        pullCUSDC(_amount);
+        // Snapshot balance
+        uint256 snapshot = CUSDC.balanceOf(address(DAO));
+        // Sweep CUSDC to the DAO
+        vm.prank(DAO);
+        redemptionPool.sweep(address(CUSDC));
+
+        assertEq(CUSDC.balanceOf(address(redemptionPool)), 0);
+        assertEq(CUSDC.balanceOf(DAO), snapshot + _amount);
+    }
+
+    function testCantSweepGRO() public {
+        vm.prank(DAO);
+        vm.expectRevert(abi.encodeWithSelector(RedemptionErrors.NoSweepGro.selector));
+        redemptionPool.sweep(address(GRO));
+    }
+
+    /////////////////////////////////////////////////////////////////////////////
+    //                              Full flow                                  //
+    /////////////////////////////////////////////////////////////////////////////
 }
