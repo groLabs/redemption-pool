@@ -262,4 +262,56 @@ contract TestRedemptionPool is BaseFixture {
         // Check that all CUSDC was claimed:
         assertApproxEqAbs(CUSDC.balanceOf(address(redemptionPool)), 0, 1e1);
     }
+
+    /// @dev Advanced case scenario when there are lots of users depositing non-equal amounts of GRO tokens
+    function testMultiUserDepositsAndClaimsEntropy(uint256 _assetAmount) public {
+        vm.assume(_assetAmount > 1e6);
+        vm.assume(_assetAmount < 100_000_000e6);
+
+        // Generate users:
+        address payable[] memory _users = utils.createUsers(USER_COUNT);
+        // Pull in assets from the DAO
+        pullCUSDC(_assetAmount);
+
+        // For each user need to generate "random" amount of GRO to deposit
+        uint256 _depositAmnt;
+        uint256 _totalDepositAmnt;
+        uint256[] memory _deposits = new uint256[](USER_COUNT);
+        for (uint256 i = 0; i < USER_COUNT; i++) {
+            _deposits[i] = uint256(keccak256(abi.encodePacked(block.timestamp, i))) % 1e25;
+            _depositAmnt = _deposits[i];
+            _totalDepositAmnt += _depositAmnt;
+            vm.warp(block.timestamp + i);
+            setStorage(_users[i], GRO.balanceOf.selector, address(GRO), _depositAmnt);
+            // Approve GRO to be spent by the RedemptionPool:
+            vm.startPrank(_users[i]);
+            GRO.approve(address(redemptionPool), _depositAmnt);
+            // Deposit GRO into the RedemptionPool:
+            redemptionPool.deposit(_depositAmnt);
+            // Check user balance
+            assertEq(redemptionPool.getUserBalance(_users[i]), _depositAmnt);
+            assertEq(
+                redemptionPool.getSharesAvailable(_users[i]), _depositAmnt * _assetAmount / redemptionPool.totalGRO()
+            );
+            vm.stopPrank();
+        }
+
+        assertEq(GRO.balanceOf(address(redemptionPool)), _totalDepositAmnt);
+        assertEq(redemptionPool.totalGRO(), _totalDepositAmnt);
+        assertEq(redemptionPool.getPricePerShare(), _assetAmount * 1e18 / redemptionPool.totalGRO());
+        // Warp to deadline
+        vm.warp(redemptionPool.DEADLINE() + 1);
+
+        // Withdraw for each user:
+        for (uint256 i = 0; i < USER_COUNT; i++) {
+            vm.startPrank(_users[i]);
+            redemptionPool.claim();
+            // Check user CUSDC balance is proportional to the amount of GRO deposited
+            assertEq(CUSDC.balanceOf(_users[i]), _deposits[i] * _assetAmount / redemptionPool.totalGRO());
+            vm.stopPrank();
+        }
+
+        // Check that all CUSDC was claimed:
+        assertApproxEqAbs(CUSDC.balanceOf(address(redemptionPool)), 0, 1e1);
+    }
 }
