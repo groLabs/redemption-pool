@@ -48,11 +48,14 @@ contract TestRedemptionPool is BaseFixture {
         vm.warp(redemptionPool.DEADLINE() + 1);
         // Deposit GRO into the RedemptionPool:
         vm.startPrank(alice);
-        vm.expectRevert(abi.encodeWithSelector(RedemptionErrors.DeadlineExceeded.selector));
+        vm.expectRevert(
+            abi.encodeWithSelector(RedemptionErrors.DeadlineExceeded.selector)
+        );
         redemptionPool.deposit(_depositAmnt);
         vm.stopPrank();
     }
 
+    /* HOTEL CALIFORNIA DOESTN'T NEED TESTS
     /// @dev test can withdraw after deposit
     function testWithdrawHappy(uint256 _depositAmnt) public {
         vm.assume(_depositAmnt > 1e18);
@@ -94,7 +97,7 @@ contract TestRedemptionPool is BaseFixture {
         redemptionPool.withdraw(_depositAmnt);
         vm.stopPrank();
     }
-
+*/
     /// @dev Test for pulling in assets from the DAO
     function testPullCUSDC(uint96 _amount) public {
         vm.assume(_amount > 1e6);
@@ -123,7 +126,9 @@ contract TestRedemptionPool is BaseFixture {
 
     function testCantSweepGRO() public {
         vm.prank(DAO);
-        vm.expectRevert(abi.encodeWithSelector(RedemptionErrors.NoSweepGro.selector));
+        vm.expectRevert(
+            abi.encodeWithSelector(RedemptionErrors.NoSweepGro.selector)
+        );
         redemptionPool.sweep(address(GRO));
     }
 
@@ -131,7 +136,10 @@ contract TestRedemptionPool is BaseFixture {
     //                              Full flow                                  //
     /////////////////////////////////////////////////////////////////////////////
 
-    function testSingleUserHasAllShares(uint256 _depositAmnt, uint256 _assetAmount) public {
+    function testSingleUserHasAllShares(
+        uint256 _depositAmnt,
+        uint256 _assetAmount
+    ) public {
         vm.assume(_depositAmnt > 1e18);
         vm.assume(_depositAmnt < 100_000_000_000e18);
         vm.assume(_assetAmount > 1e6);
@@ -153,7 +161,7 @@ contract TestRedemptionPool is BaseFixture {
         assertEq(redemptionPool.getSharesAvailable(alice), _assetAmount);
 
         // Check ppfs
-        uint256 expectedPpfs = _assetAmount * 1e18 / _depositAmnt;
+        uint256 expectedPpfs = (_assetAmount * 1e18) / _depositAmnt;
         assertEq(redemptionPool.getPricePerShare(), expectedPpfs);
 
         // Roll to deadline and claim
@@ -164,7 +172,10 @@ contract TestRedemptionPool is BaseFixture {
         assertEq(CUSDC.balanceOf(alice), _assetAmount);
     }
 
-    function testCantClaimIfDidntDeposit(uint256 _depositAmnt, uint256 _assetAmount) public {
+    function testCantClaimIfDidntDeposit(
+        uint256 _depositAmnt,
+        uint256 _assetAmount
+    ) public {
         vm.assume(_depositAmnt > 1e18);
         vm.assume(_depositAmnt < 100_000_000_000e18);
         vm.assume(_assetAmount > 1e6);
@@ -182,11 +193,16 @@ contract TestRedemptionPool is BaseFixture {
         vm.warp(redemptionPool.DEADLINE() + 1);
         // Bob should be not be able to claim
         vm.prank(bob);
-        vm.expectRevert(abi.encodeWithSelector(RedemptionErrors.NoUserBalance.selector));
+        vm.expectRevert(
+            abi.encodeWithSelector(RedemptionErrors.NoUserBalance.selector)
+        );
         redemptionPool.claim();
     }
 
-    function testCantClaimMultipleTimes(uint256 _depositAmnt, uint256 _assetAmount) public {
+    function testCantClaimMultipleTimes(
+        uint256 _depositAmnt,
+        uint256 _assetAmount
+    ) public {
         vm.assume(_depositAmnt > 1e18);
         vm.assume(_depositAmnt < 100_000_000_000e18);
         vm.assume(_assetAmount > 1e6);
@@ -205,7 +221,9 @@ contract TestRedemptionPool is BaseFixture {
         vm.startPrank(alice);
         redemptionPool.claim();
         // On second claim should revert
-        vm.expectRevert(abi.encodeWithSelector(RedemptionErrors.NoUserClaim.selector));
+        vm.expectRevert(
+            abi.encodeWithSelector(RedemptionErrors.NoUserClaim.selector)
+        );
         redemptionPool.claim();
         vm.stopPrank();
     }

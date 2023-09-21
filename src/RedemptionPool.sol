@@ -13,42 +13,55 @@ contract RedemptionPool is Ownable {
     //                                  Constants                              //
     /////////////////////////////////////////////////////////////////////////////
 
-    uint256 public constant DURATION = 30 days;
+    uint256 public constant DURATION = 28 days;
     uint256 public immutable DEADLINE;
 
     uint256 internal constant BIPS = 10_000;
     uint256 internal constant PRECISION = 1e18;
     uint256 internal constant CUSDC_PRECISION = 1e8;
 
-    address internal constant DAO = address(0x359F4fe841f246a095a82cb26F5819E10a91fe0d);
-    address internal constant COMPTROLLER = address(0x3d9819210A31b4961b30EF54bE2aeD79B9c9Cd3B);
-    address internal constant UNIV2ROUTER = address(0xE592427A0AEce92De3Edee1F18E0157C05861564);
+    address internal constant DAO =
+        address(0x359F4fe841f246a095a82cb26F5819E10a91fe0d);
+    address internal constant COMPTROLLER =
+        address(0x3d9819210A31b4961b30EF54bE2aeD79B9c9Cd3B);
+    address internal constant UNIV3ROUTER =
+        address(0xE592427A0AEce92De3Edee1F18E0157C05861564);
 
     // TOKENS
-    IERC20 public constant GRO = IERC20(0x3Ec8798B81485A254928B70CDA1cf0A2BB0B74D7);
-    IERC20 public constant CUSDC = IERC20(0x39AA39c021dfbaE8faC545936693aC917d5E7563);
+    IERC20 public constant GRO =
+        IERC20(0x3Ec8798B81485A254928B70CDA1cf0A2BB0B74D7);
+    IERC20 public constant CUSDC =
+        IERC20(0x39AA39c021dfbaE8faC545936693aC917d5E7563);
 
-    address internal constant USDC = address(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
-    address internal constant COMP = address(0xc00e94Cb662C3520282E6f5717214004A7f26888);
-    address internal constant WETH9 = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
+    address internal constant USDC =
+        address(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
+    address internal constant COMP =
+        address(0xc00e94Cb662C3520282E6f5717214004A7f26888);
+    address internal constant WETH9 =
+        address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
 
     /////////////////////////////////////////////////////////////////////////////
     //                                  Storage                                //
     /////////////////////////////////////////////////////////////////////////////
 
-    mapping(address => uint256) private _userBalance;
+    mapping(address => uint256) private _userGROBalance;
     mapping(address => uint256) private _userClaims;
     uint256 public totalGRO;
-    uint256 public totalAssetsDeposited;
+    uint256 public totalCUSDCDeposited;
 
     /////////////////////////////////////////////////////////////////////////////
     //                                  Events                                 //
     /////////////////////////////////////////////////////////////////////////////
 
     event Deposit(address indexed user, uint256 amount);
-    event Withdraw(address indexed user, uint256 amount);
+    //    event Withdraw(address indexed user, uint256 amount);
     event Claim(address indexed user, uint256 amount);
     event CUSDCDeposit(uint256 amount);
+    event PositionTransferred(
+        address indexed from,
+        address indexed to,
+        uint256 amount
+    );
 
     /////////////////////////////////////////////////////////////////////////////
     //                                  CONSTRUCTOR                            //
@@ -56,7 +69,7 @@ contract RedemptionPool is Ownable {
 
     constructor() {
         transferOwnership(DAO);
-        // Sets the DEADLINE to 30 days from now
+        // Sets the DEADLINE to 28 days from now
         DEADLINE = block.timestamp + DURATION;
     }
 
@@ -66,19 +79,22 @@ contract RedemptionPool is Ownable {
 
     /// @notice Returns the price per share of the pool
     function getPricePerShare() public view returns (uint256) {
-        return totalAssetsDeposited * PRECISION / totalGRO;
+        return (totalCUSDCDeposited * PRECISION) / totalGRO;
     }
 
     /// @notice Returns the amount of cUSDC available for a user
     /// @param user address of the user
     function getSharesAvailable(address user) public view returns (uint256) {
-        return _userBalance[user] * totalAssetsDeposited / totalGRO - _userClaims[user];
+        return
+            (_userGROBalance[user] * totalCUSDCDeposited) /
+            totalGRO -
+            _userClaims[user];
     }
 
     /// @notice Returns the amount of GRO user has deposited
     /// @param user address of the user
     function getUserBalance(address user) external view returns (uint256) {
-        return _userBalance[user];
+        return _userGROBalance[user];
     }
 
     /// @notice Returns claimed cUSDC for a user
@@ -106,34 +122,35 @@ contract RedemptionPool is Ownable {
         // Transfers the GRO tokens from the sender to this contract
         GRO.safeTransferFrom(msg.sender, address(this), _amount);
         // Increases the balance of the sender by the amount
-        _userBalance[msg.sender] += _amount;
+        _userGROBalance[msg.sender] += _amount;
         // Increases the total deposited by the amount
         totalGRO += _amount;
         // Emits the Deposit event
         emit Deposit(msg.sender, _amount);
     }
 
+    /* WELCOME TO HOTEL CALIFORNIA
     /// @notice withdraw deposited GRO tokens before the deadline
     /// @param _amount amount of GRO tokens to withdraw
     function withdraw(uint256 _amount) external {
         if (block.timestamp > DEADLINE) {
             revert RedemptionErrors.DeadlineExceeded();
         }
-        if (_userBalance[msg.sender] > _amount) {
+        if (_userGROBalance[msg.sender] < _amount) {
             revert RedemptionErrors.UserBalanceToSmall();
         }
-        _userBalance[msg.sender] -= _amount;
+        _userGROBalance[msg.sender] -= _amount;
         totalGRO -= _amount;
         GRO.safeTransfer(msg.sender, _amount);
         emit Withdraw(msg.sender, _amount);
     }
-
+*/
     /// @notice Allow to withdraw cUSDC based on amount of GRO tokens deposited per user
     function claim() external {
         if (block.timestamp <= DEADLINE) {
-            revert RedemptionErrors.DeadlineExceeded();
+            revert RedemptionErrors.DeadlineNotExceeded();
         }
-        if (_userBalance[msg.sender] <= 0) {
+        if (_userGROBalance[msg.sender] <= 0) {
             revert RedemptionErrors.NoUserBalance();
         }
         uint256 userClaim = getSharesAvailable(msg.sender);
@@ -153,9 +170,12 @@ contract RedemptionPool is Ownable {
     /// @param amount amount of cUSDC to pull
     function depositCUSDC(uint256 amount) external onlyOwner {
         require(amount > 0, "amount must be greater than 0");
-        require(IERC20(CUSDC).transferFrom(msg.sender, address(this), amount), "transfer failed");
-        totalAssetsDeposited += amount;
-        emit CUSDCDeposit(totalAssetsDeposited);
+        require(
+            IERC20(CUSDC).transferFrom(msg.sender, address(this), amount),
+            "transfer failed"
+        );
+        totalCUSDCDeposited += amount;
+        emit CUSDCDeposit(totalCUSDCDeposited);
     }
 
     /// @notice Allow to withdraw any tokens except GRO back to the owner
@@ -166,6 +186,22 @@ contract RedemptionPool is Ownable {
             revert RedemptionErrors.NoSweepGro();
         }
         // Transfers the tokens to the owner
-        IERC20(_token).safeTransfer(owner(), IERC20(_token).balanceOf(address(this)));
+        IERC20(_token).safeTransfer(
+            owner(),
+            IERC20(_token).balanceOf(address(this))
+        );
+    }
+
+    // @notice Transfers a portion or all of a user's redeemable GRO position to a new address.
+    // @param to The address to which the GRO position will be transferred.
+    // @param amount The amount of GRO to transfer.
+    function transferPosition(address to, uint256 amount) public {
+        if (amount > (_userGROBalance[msg.sender] - _userClaims[msg.sender]))
+            revert RedemptionErrors.AmountExceedsAvailableGRO();
+
+        _userGROBalance[msg.sender] -= amount;
+        _userGROBalance[to] += amount;
+
+        emit PositionTransferred(msg.sender, to, amount);
     }
 }

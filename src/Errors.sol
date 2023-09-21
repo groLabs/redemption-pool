@@ -9,4 +9,5 @@ library RedemptionErrors {
     error NoUserClaim();
 
     error NoSweepGro();
+    error AmountExceedsAvailableGRO();
 }
