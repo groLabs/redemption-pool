@@ -5,6 +5,8 @@ import "./BaseFixture.sol";
 import {RedemptionErrors} from "../src/Errors.sol";
 
 contract TestRedemptionPool is BaseFixture {
+    uint256 public constant USER_COUNT = 10;
+
     function setUp() public override {
         super.setUp();
     }
@@ -128,7 +130,7 @@ contract TestRedemptionPool is BaseFixture {
     }
 
     /////////////////////////////////////////////////////////////////////////////
-    //                              Full flow                                  //
+    //                              Claim flow                                 //
     /////////////////////////////////////////////////////////////////////////////
 
     function testSingleUserHasAllShares(uint256 _depositAmnt, uint256 _assetAmount) public {
@@ -208,5 +210,56 @@ contract TestRedemptionPool is BaseFixture {
         vm.expectRevert(abi.encodeWithSelector(RedemptionErrors.NoUserClaim.selector));
         redemptionPool.claim();
         vm.stopPrank();
+    }
+
+    /////////////////////////////////////////////////////////////////////////////
+    //                 Multiple users claiming                                 //
+    /////////////////////////////////////////////////////////////////////////////
+
+    /// @dev Advanced case scenario when there are lots of users depositing equal amounts of GRO tokens
+    function testMultiUserDepositsAndClaims(uint256 _depositAmnt, uint256 _assetAmount) public {
+        vm.assume(_depositAmnt > 1e18);
+        vm.assume(_depositAmnt < 100_000_000_000e18);
+        vm.assume(_assetAmount > 1e6);
+        vm.assume(_assetAmount < 100_000_000e6);
+
+        // Generate users:
+        address payable[] memory _users = utils.createUsers(USER_COUNT);
+        // Pull in assets from the DAO
+        pullCUSDC(_assetAmount);
+        // Give users some GRO:
+        for (uint256 i = 0; i < USER_COUNT; i++) {
+            setStorage(_users[i], GRO.balanceOf.selector, address(GRO), _depositAmnt);
+            // Approve GRO to be spent by the RedemptionPool:
+            vm.startPrank(_users[i]);
+            GRO.approve(address(redemptionPool), _depositAmnt);
+            // Deposit GRO into the RedemptionPool:
+            redemptionPool.deposit(_depositAmnt);
+            // Check user balance
+            assertEq(redemptionPool.getUserBalance(_users[0]), _depositAmnt);
+            assertEq(
+                redemptionPool.getSharesAvailable(_users[0]), _depositAmnt * _assetAmount / redemptionPool.totalGRO()
+            );
+            vm.stopPrank();
+        }
+
+        // Checks:
+        assertEq(GRO.balanceOf(address(redemptionPool)), _depositAmnt * USER_COUNT);
+        assertEq(redemptionPool.totalGRO(), _depositAmnt * USER_COUNT);
+        assertEq(redemptionPool.getPricePerShare(), _assetAmount * 1e18 / redemptionPool.totalGRO());
+
+        // Warp to deadline
+        vm.warp(redemptionPool.DEADLINE() + 1);
+
+        // Withdraw for each user:
+        for (uint256 i = 0; i < USER_COUNT; i++) {
+            vm.startPrank(_users[i]);
+            redemptionPool.claim();
+            // Check user CUSDC balance:
+            assertEq(CUSDC.balanceOf(_users[i]), _assetAmount / USER_COUNT);
+            vm.stopPrank();
+        }
+        // Check that all CUSDC was claimed:
+        assertApproxEqAbs(CUSDC.balanceOf(address(redemptionPool)), 0, 1e1);
     }
 }
