@@ -18,12 +18,10 @@ contract RedemptionPool is Ownable {
 
     uint256 internal constant BIPS = 10_000;
     uint256 internal constant PRECISION = 1e18;
-    uint256 internal constant CUSDC_PRECISION = 1e8;
+    uint256 internal constant CUSDC_PRECISION = 1e6;
 
     address internal constant DAO =
         address(0x359F4fe841f246a095a82cb26F5819E10a91fe0d);
-    address internal constant COMPTROLLER =
-        address(0x3d9819210A31b4961b30EF54bE2aeD79B9c9Cd3B);
     address internal constant UNIV3ROUTER =
         address(0xE592427A0AEce92De3Edee1F18E0157C05861564);
 
@@ -31,7 +29,7 @@ contract RedemptionPool is Ownable {
     IERC20 public constant GRO =
         IERC20(0x3Ec8798B81485A254928B70CDA1cf0A2BB0B74D7);
     IERC20 public constant CUSDC =
-        IERC20(0x39AA39c021dfbaE8faC545936693aC917d5E7563);
+        IERC20(0xc3d688B66703497DAA19211EEdff47f25384cdc3);
 
     address internal constant USDC =
         address(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
@@ -48,6 +46,8 @@ contract RedemptionPool is Ownable {
     mapping(address => uint256) private _userClaims;
     uint256 public totalGRO;
     uint256 public totalCUSDCDeposited;
+    uint256 public interestAccrued;
+    uint256 public totalClaims;
 
     /////////////////////////////////////////////////////////////////////////////
     //                                  Events                                 //
@@ -79,14 +79,14 @@ contract RedemptionPool is Ownable {
 
     /// @notice Returns the price per share of the pool
     function getPricePerShare() public view returns (uint256) {
-        return (totalCUSDCDeposited * PRECISION) / totalGRO;
+        return (_calcTotalWithinterest() * PRECISION) / totalGRO;
     }
 
     /// @notice Returns the amount of cUSDC available for a user
     /// @param user address of the user
     function getSharesAvailable(address user) public view returns (uint256) {
         return
-            (_userGROBalance[user] * totalCUSDCDeposited) /
+            (_userGROBalance[user] * _calcTotalWithinterest()) /
             totalGRO -
             _userClaims[user];
     }
@@ -106,6 +106,14 @@ contract RedemptionPool is Ownable {
     /// @notice Returns the deadline of the redemption pool
     function getDeadline() external view returns (uint256) {
         return DEADLINE;
+    }
+
+    function _calcTotalWithinterest() internal view returns (uint256) {
+        return totalCUSDCDeposited + _interestAccrued();
+    }
+
+    function _interestAccrued() internal view returns (uint256) {
+        return interestAccrued + (CUSDC.balanceOf(address(this)) - (totalCUSDCDeposited + interestAccrued - totalClaims));
     }
 
     /////////////////////////////////////////////////////////////////////////////
@@ -144,7 +152,8 @@ contract RedemptionPool is Ownable {
         GRO.safeTransfer(msg.sender, _amount);
         emit Withdraw(msg.sender, _amount);
     }
-*/
+    */
+
     /// @notice Allow to withdraw cUSDC based on amount of GRO tokens deposited per user
     function claim() external {
         if (block.timestamp <= DEADLINE) {
@@ -158,6 +167,8 @@ contract RedemptionPool is Ownable {
             revert RedemptionErrors.NoUserClaim();
         }
         _userClaims[msg.sender] += userClaim;
+        interestAccrued = _interestAccrued();
+        totalClaims += userClaim;
         IERC20(CUSDC).transfer(msg.sender, userClaim);
         emit Claim(msg.sender, userClaim);
     }
@@ -175,6 +186,7 @@ contract RedemptionPool is Ownable {
             "transfer failed"
         );
         totalCUSDCDeposited += amount;
+        interestAccrued = _interestAccrued();
         emit CUSDCDeposit(totalCUSDCDeposited);
     }
 
