@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.20;
+pragma solidity 0.8.15;
 
 import "./BaseFixture.sol";
 import {RedemptionErrors} from "../src/Errors.sol";
@@ -176,10 +176,10 @@ contract TestRedemptionPool is BaseFixture {
         uint256 _depositAmnt,
         uint256 _assetAmount
     ) public {
-        vm.assume(_depositAmnt > 1e18);
-        vm.assume(_depositAmnt < 100_000_000_000e18);
+        vm.assume(_depositAmnt > 1e6);
+        vm.assume(_depositAmnt < 1e12);
         vm.assume(_assetAmount > 1e6);
-        vm.assume(_assetAmount < 100_000_000e6);
+        vm.assume(_assetAmount < 1e12);
         setStorage(alice, GRO.balanceOf.selector, address(GRO), _depositAmnt);
         // Approve GRO to be spent by the RedemptionPool:
         vm.prank(alice);

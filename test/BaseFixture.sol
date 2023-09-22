@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: AGPLv3
-pragma solidity 0.8.20;
+pragma solidity 0.8.15;
 
 import "forge-std/Test.sol";
 import {ERC20} from "../lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
+import {CometInterface} from "@compound/CometInterface.sol";
+import {CometRewards} from "@compound/CometRewards.sol";
 
 import "./utils.sol";
 import "../src/RedemptionPool.sol";
@@ -11,7 +13,8 @@ contract BaseFixture is Test {
     using stdStorage for StdStorage;
 
     ERC20 public constant GRO = ERC20(0x3Ec8798B81485A254928B70CDA1cf0A2BB0B74D7);
-    ERC20 public constant CUSDC = ERC20(0x39AA39c021dfbaE8faC545936693aC917d5E7563);
+    ERC20 public constant CUSDC = ERC20(0xc3d688B66703497DAA19211EEdff47f25384cdc3);
+    ERC20 internal constant USDC = ERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
     address public constant DAO = address(0x359F4fe841f246a095a82cb26F5819E10a91fe0d);
 
     Utils internal utils;
@@ -42,8 +45,13 @@ contract BaseFixture is Test {
 
     /// @dev Helper function to
     function pullCUSDC(uint256 amount) public {
-        setStorage(DAO, CUSDC.balanceOf.selector, address(CUSDC), type(uint96).max);
+        setStorage(DAO, USDC.balanceOf.selector, address(USDC), type(uint96).max);
         vm.startPrank(DAO);
+        USDC.approve(address(CUSDC), amount);
+        CometInterface(address(CUSDC)).allow(DAO, true);
+        CometInterface(address(CUSDC)).allow(address(redemptionPool), true);
+        console.log( CometInterface(address(CUSDC)).isAllowed(DAO, DAO));
+        CometInterface(address(CUSDC)).supply(address(USDC), amount);
         CUSDC.approve(address(redemptionPool), amount);
         redemptionPool.depositCUSDC(amount);
         vm.stopPrank();
