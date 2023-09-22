@@ -5,8 +5,9 @@ libs = ["lib"]
 remappings = [
     "forge-std/=lib/forge-std/src/",
     "@openzeppelin/=lib/openzeppelin-contracts/contracts/",
+    "@compound/=lib/comet/contracts/",
 ]
-solc_version = "0.8.20"
+solc_version = "0.8.15"
 
 [rpc_endpoints]
 mainnet = "https://eth-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}"
