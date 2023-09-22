@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.20;
+pragma solidity 0.8.15;
 
 import {Ownable} from "@openzeppelin/access/Ownable.sol";
 import {IERC20} from "@openzeppelin/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/token/ERC20/utils/SafeERC20.sol";
+import {CometInterface} from "@compound/CometInterface.sol";
+import {CometRewards} from "@compound/CometRewards.sol";
 import {RedemptionErrors} from "./Errors.sol";
 
 contract RedemptionPool is Ownable {
@@ -22,6 +24,8 @@ contract RedemptionPool is Ownable {
 
     address internal constant DAO =
         address(0x359F4fe841f246a095a82cb26F5819E10a91fe0d);
+    address internal constant REWARDS =
+        address(0x1B0e765F6224C21223AeA2af16c1C46E38885a40);
     address internal constant UNIV3ROUTER =
         address(0xE592427A0AEce92De3Edee1F18E0157C05861564);
 
@@ -215,5 +219,11 @@ contract RedemptionPool is Ownable {
         _userGROBalance[to] += amount;
 
         emit PositionTransferred(msg.sender, to, amount);
+    }
+
+    // Function to claim COMP tokens
+    function claimComp() public {
+        uint64 compAmount = CometInterface(address(CUSDC)).baseTrackingAccrued(address(this));
+        CometRewards(REWARDS).claim(address(CUSDC), address(this), true);
     }
 }
