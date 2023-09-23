@@ -25,7 +25,8 @@ contract RedemptionPool is Ownable {
 
     uint256 public constant DURATION = 28 days;
     uint256 public immutable DEADLINE;
-    uint256 internal constant PRECISION = 1e2;
+    uint256 internal constant PRECISION = 1e18;
+    uint256 internal constant TINY_PRECISION = 1e2;
     address internal constant DAO =
         address(0x359F4fe841f246a095a82cb26F5819E10a91fe0d);
 
@@ -93,11 +94,16 @@ contract RedemptionPool is Ownable {
 
     /// @notice Returns the price per share of the pool in terms of USDC
     function getPricePerShare() public view returns (uint256) {
+        return (totalCUSDCDeposited * PRECISION) / totalGRO;
+    }
+
+    /// @notice Returns the price per share of the pool in terms of USDC
+    function getUSDCperGRO() public view returns (uint256) {
         // Get the exchange rate from cUSDC to USDC (18 decimals)
         uint256 USDCperCUSDC = ICERC20(CUSDC).exchangeRateStored();
 
         // Calculate USDC per GRO (result will have 6 decimals)
-        return (totalCUSDCDeposited * USDCperCUSDC * PRECISION) / totalGRO;
+        return (totalCUSDCDeposited * USDCperCUSDC * TINY_PRECISION) / totalGRO;
     }
 
     /// @notice Returns the amount of cUSDC available for a user
@@ -145,7 +151,7 @@ contract RedemptionPool is Ownable {
     /// @param _amount amount of GRO tokens to withdraw
     function withdraw(uint256 _amount) external onlyBeforeDeadline {
         if (_userGROBalance[msg.sender] < _amount)
-            revert RedemptionErrors.AmountExceedsAvailableGRO();
+            revert RedemptionErrors.InsufficientBalance();
 
         _userGROBalance[msg.sender] -= _amount;
         totalGRO -= _amount;
@@ -164,11 +170,11 @@ contract RedemptionPool is Ownable {
         // Get the amount of cUSDC tokens available for the user to claim
         uint256 userClaim = getSharesAvailable(msg.sender);
 
-        // Check if the user has a non-zero claim available
-        if (userClaim == 0) revert RedemptionErrors.AmountExceedsAvailableGRO();
-
         // Cap the user's claim to the available balance of cUSDC tokens
         if (_amount > userClaim) _amount = userClaim;
+
+        // Revert if nothing to claim
+        if (_amount == 0) revert RedemptionErrors.InsufficientBalance();
 
         // Redeem the user's cUSDC tokens for USDC tokens
         // and transfer the USDC tokens to the user's address
@@ -213,7 +219,7 @@ contract RedemptionPool is Ownable {
     // @param amount The amount of GRO to transfer.
     function transferPosition(address _to, uint256 _amount) public {
         if (_amount > (_userGROBalance[msg.sender] - _userClaims[msg.sender]))
-            revert RedemptionErrors.AmountExceedsAvailableGRO();
+            revert RedemptionErrors.InsufficientBalance();
 
         _userGROBalance[msg.sender] -= _amount;
         _userGROBalance[_to] += _amount;

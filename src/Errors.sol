@@ -4,9 +4,9 @@ pragma solidity 0.8.20;
 library RedemptionErrors {
     error DeadlineExceeded();
     error ClaimsPeriodNotStarted();
-    error NoUserBalance();
     error GreaterThanZeroOnly();
+    error InsufficientBalance();
 
     error NoSweepGro();
-    error AmountExceedsAvailableGRO();
+    error NoUserBalance();
 }
