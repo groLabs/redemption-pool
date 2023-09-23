@@ -54,7 +54,7 @@ contract BaseFixture is Test {
         vm.store(_contract, bytes32(slot), bytes32(value));
     }
 
-    /// @dev Helper function to
+    /// @dev Helper function to pull cUSDC from DAO
     function pullCUSDC(uint256 amount) public {
         setStorage(
             DAO,

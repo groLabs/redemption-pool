@@ -254,7 +254,7 @@ contract TestRedemptionPool is BaseFixture {
         vm.assume(_depositAmnt > 1e18);
         vm.assume(_depositAmnt < 100_000_000_000e18);
         vm.assume(_assetAmount > 1e8);
-        vm.assume(_assetAmount < 100_000_000e8);
+        vm.assume(_assetAmount < 100_000_000_000e8);
 
         // Generate users:
         address payable[] memory _users = utils.createUsers(USER_COUNT);
@@ -316,12 +316,13 @@ contract TestRedemptionPool is BaseFixture {
         // Withdraw for each user:
         for (uint256 i = 0; i < USER_COUNT; i++) {
             vm.startPrank(_users[i]);
+            console.log("User %s", _users[i]);
             redemptionPool.claim(_assetAmount / USER_COUNT);
             // Check user CUSDC balance:
             assertEq(
                 USDC.balanceOf(_users[i]),
                 ((_assetAmount / USER_COUNT) *
-                    ICERC20(CUSDC).exchangeRateStored()) / 1e10
+                    ICERC20(CUSDC).exchangeRateStored()) / 1e20
             );
             vm.stopPrank();
         }

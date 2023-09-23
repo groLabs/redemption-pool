@@ -103,7 +103,8 @@ contract RedemptionPool is Ownable {
         uint256 USDCperCUSDC = ICERC20(CUSDC).exchangeRateStored();
 
         // Calculate USDC per GRO (result will have 6 decimals)
-        return (totalCUSDCDeposited * USDCperCUSDC * TINY_PRECISION) / totalGRO;
+        return
+            (totalCUSDCDeposited * USDCperCUSDC) / (totalGRO * TINY_PRECISION);
     }
 
     /// @notice Returns the amount of cUSDC available for a user
