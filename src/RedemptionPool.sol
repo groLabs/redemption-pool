@@ -25,9 +25,7 @@ contract RedemptionPool is Ownable {
 
     uint256 public constant DURATION = 28 days;
     uint256 public immutable DEADLINE;
-
     uint256 internal constant PRECISION = 1e2;
-
     address internal constant DAO =
         address(0x359F4fe841f246a095a82cb26F5819E10a91fe0d);
 
@@ -70,7 +68,6 @@ contract RedemptionPool is Ownable {
     //                                  Events                                 //
     /////////////////////////////////////////////////////////////////////////////
 
-    event Deposit(address indexed user, uint256 amount, uint256 totalGRO);
     event Withdraw(address indexed user, uint256 amount);
     event Claim(address indexed user, uint256 amount);
     event CUSDCDeposit(uint256 amount);
@@ -142,8 +139,6 @@ contract RedemptionPool is Ownable {
         _userGROBalance[msg.sender] += _amount;
         // Increases the total deposited by the amount
         totalGRO += _amount;
-        // Emits the Deposit event
-        emit Deposit(msg.sender, _amount, totalGRO);
     }
 
     /// @notice withdraw deposited GRO tokens before the deadline
