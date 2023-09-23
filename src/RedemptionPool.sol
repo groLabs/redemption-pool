@@ -12,6 +12,8 @@ import {RedemptionErrors} from "./Errors.sol";
 // Interface for Compound cToken (cUSDC)
 interface ICERC20 is IERC20 {
     function redeem(uint256 redeemTokens) external returns (uint256);
+
+    function exchangeRateStored() external view returns (uint256);
 }
 
 contract RedemptionPool is Ownable {
@@ -24,7 +26,7 @@ contract RedemptionPool is Ownable {
     uint256 public constant DURATION = 28 days;
     uint256 public immutable DEADLINE;
 
-    uint256 internal constant PRECISION = 1e18;
+    uint256 internal constant PRECISION = 1e2;
 
     address internal constant DAO =
         address(0x359F4fe841f246a095a82cb26F5819E10a91fe0d);
@@ -69,6 +71,7 @@ contract RedemptionPool is Ownable {
     /////////////////////////////////////////////////////////////////////////////
 
     event Deposit(address indexed user, uint256 amount, uint256 totalGRO);
+    event Withdraw(address indexed user, uint256 amount);
     event Claim(address indexed user, uint256 amount);
     event CUSDCDeposit(uint256 amount);
     event PositionTransferred(
@@ -91,9 +94,13 @@ contract RedemptionPool is Ownable {
     //                                   VIEWS                                 //
     /////////////////////////////////////////////////////////////////////////////
 
-    /// @notice Returns the price per share of the pool
+    /// @notice Returns the price per share of the pool in terms of USDC
     function getPricePerShare() public view returns (uint256) {
-        return (totalCUSDCDeposited * PRECISION) / totalGRO;
+        // Get the exchange rate from cUSDC to USDC (18 decimals)
+        uint256 USDCperCUSDC = ICERC20(CUSDC).exchangeRateStored();
+
+        // Calculate USDC per GRO (result will have 6 decimals)
+        return (totalCUSDCDeposited * USDCperCUSDC * PRECISION) / totalGRO;
     }
 
     /// @notice Returns the amount of cUSDC available for a user
@@ -129,8 +136,6 @@ contract RedemptionPool is Ownable {
     /// @notice deposit GRO tokens to the pool before the deadline
     /// @param _amount amount of GRO tokens to deposit
     function deposit(uint256 _amount) external onlyBeforeDeadline {
-        if (_amount <= 0) revert RedemptionErrors.GreaterThanZeroOnly();
-
         // Transfers the GRO tokens from the sender to this contract
         GRO.safeTransferFrom(msg.sender, address(this), _amount);
         // Increases the balance of the sender by the amount
@@ -141,6 +146,18 @@ contract RedemptionPool is Ownable {
         emit Deposit(msg.sender, _amount, totalGRO);
     }
 
+    /// @notice withdraw deposited GRO tokens before the deadline
+    /// @param _amount amount of GRO tokens to withdraw
+    function withdraw(uint256 _amount) external onlyBeforeDeadline {
+        if (_userGROBalance[msg.sender] < _amount)
+            revert RedemptionErrors.AmountExceedsAvailableGRO();
+
+        _userGROBalance[msg.sender] -= _amount;
+        totalGRO -= _amount;
+        GRO.safeTransfer(msg.sender, _amount);
+        emit Withdraw(msg.sender, _amount);
+    }
+
     /**
      * @notice Allow users to claim their share of USDC tokens based on the amount of GRO tokens they have deposited
      * @dev Users must have a positive GRO token balance and a non-zero claim available to make a claim
@@ -148,26 +165,25 @@ contract RedemptionPool is Ownable {
      * @dev Redeems the user's cUSDC tokens for an equivalent amount of USDC tokens and transfers them to the user's address
      * @dev Decreases the user's claims and contract accounting by the amount claimed
      */
-    function claim() external onlyAfterDeadline {
-        // Check if the user has a positive GRO token balance
-        if (_userGROBalance[msg.sender] <= 0)
-            revert RedemptionErrors.NoUserBalance();
-
+    function claim(uint256 _amount) external onlyAfterDeadline {
         // Get the amount of cUSDC tokens available for the user to claim
         uint256 userClaim = getSharesAvailable(msg.sender);
 
         // Check if the user has a non-zero claim available
-        if (userClaim <= 0) revert RedemptionErrors.NoUserClaim();
+        if (userClaim == 0) revert RedemptionErrors.AmountExceedsAvailableGRO();
+
+        // Cap the user's claim to the available balance of cUSDC tokens
+        if (_amount > userClaim) _amount = userClaim;
 
         // Redeem the user's cUSDC tokens for USDC tokens
         // and transfer the USDC tokens to the user's address
-        uint256 usdcAmount = ICERC20(CUSDC).redeem(userClaim);
+        uint256 usdcAmount = ICERC20(CUSDC).redeem(_amount);
         IERC20(USDC).safeTransfer(msg.sender, usdcAmount);
 
-        // Decrease the user's claims and contract accounting by the amount claimed
-        _userClaims[msg.sender] += userClaim;
-        totalCUSDCWithdrawn += userClaim;
-        emit Claim(msg.sender, userClaim);
+        // Adjust the user's and the cumulative tally of claimed cUSDC
+        _userClaims[msg.sender] += _amount;
+        totalCUSDCWithdrawn += _amount;
+        emit Claim(msg.sender, _amount);
     }
 
     /////////////////////////////////////////////////////////////////////////////
@@ -177,8 +193,6 @@ contract RedemptionPool is Ownable {
     /// @notice Pulls assets from the DAO msig
     /// @param _amount amount of cUSDC to pull
     function depositCUSDC(uint256 _amount) external onlyOwner {
-        if (_amount <= 0) revert RedemptionErrors.GreaterThanZeroOnly();
-
         // Transfer cUSDC from the caller to this contract
         IERC20(CUSDC).safeTransferFrom(msg.sender, address(this), _amount);
 
@@ -203,7 +217,6 @@ contract RedemptionPool is Ownable {
     // @param to The address to which the GRO position will be transferred.
     // @param amount The amount of GRO to transfer.
     function transferPosition(address _to, uint256 _amount) public {
-        if (_amount <= 0) revert RedemptionErrors.GreaterThanZeroOnly();
         if (_amount > (_userGROBalance[msg.sender] - _userClaims[msg.sender]))
             revert RedemptionErrors.AmountExceedsAvailableGRO();
 

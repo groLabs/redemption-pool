@@ -158,18 +158,25 @@ contract TestRedemptionPool is BaseFixture {
         pullCUSDC(_assetAmount);
 
         // Check user's shares
-        assertEq(redemptionPool.getSharesAvailable(alice), _assetAmount);
+        uint256 sharesAvailable = redemptionPool.getSharesAvailable(alice);
+        assertEq(sharesAvailable, _assetAmount);
 
         // Check ppfs
+        uint256 actualPpfs = redemptionPool.getPricePerShare();
         uint256 expectedPpfs = (_assetAmount * 1e18) / _depositAmnt;
-        assertEq(redemptionPool.getPricePerShare(), expectedPpfs);
+        assertEq(actualPpfs, expectedPpfs);
 
         // Roll to deadline and claim
         vm.warp(redemptionPool.DEADLINE() + 1);
         vm.prank(alice);
         redemptionPool.claim();
 
-        assertEq(CUSDC.balanceOf(alice), _assetAmount);
+        // Calculate the expected amount of USDC tokens based on the current exchange rate
+        uint256 expectedUSDC = (_assetAmount *
+            ICERC20(CUSDC).exchangeRateStored()) / 1e18;
+
+        // Check that the user received the expected amount of USDC tokens
+        assertEq(USDC.balanceOf(alice), expectedUSDC);
     }
 
     function testCantClaimIfDidntDeposit(
