@@ -179,7 +179,9 @@ contract RedemptionPool is Ownable {
 
         // Redeem the user's cUSDC tokens for USDC tokens
         // and transfer the USDC tokens to the user's address
-        uint256 usdcAmount = ICERC20(CUSDC).redeem(_amount);
+        ICERC20(CUSDC).redeem(_amount);
+        uint256 usdcAmount = (ICERC20(CUSDC).exchangeRateStored() * _amount) /
+            1e20;
         IERC20(USDC).safeTransfer(msg.sender, usdcAmount);
 
         // Adjust the user's and the cumulative tally of claimed cUSDC

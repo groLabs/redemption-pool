@@ -217,8 +217,8 @@ contract TestRedemptionPool is BaseFixture {
     ) public {
         vm.assume(_depositAmnt > 1e18);
         vm.assume(_depositAmnt < 100_000_000_000e18);
-        vm.assume(_assetAmount > 1e6);
-        vm.assume(_assetAmount < 100_000_000e6);
+        vm.assume(_assetAmount > 1e8);
+        vm.assume(_assetAmount < 100_000_000e8);
         setStorage(alice, GRO.balanceOf.selector, address(GRO), _depositAmnt);
         // Approve GRO to be spent by the RedemptionPool:
         vm.prank(alice);
@@ -231,7 +231,34 @@ contract TestRedemptionPool is BaseFixture {
         pullCUSDC(_assetAmount);
         vm.warp(redemptionPool.DEADLINE() + 1);
         vm.startPrank(alice);
+        assertTrue(
+            CUSDC.balanceOf(address(redemptionPool)) > 0,
+            "Contract has no CUSDC"
+        );
+        assertTrue(USDC.balanceOf(address(CUSDC)) > 0, "CUSDC has no USDC");
+        console.log(
+            "USDC balance of CUSDC: %s",
+            USDC.balanceOf(address(CUSDC))
+        );
+        console.log(
+            "CUSDC balance of RedemptionPool: %s",
+            CUSDC.balanceOf(address(redemptionPool))
+        );
+        console.log(
+            "redemptionPool's CUSDC converted into USDC: %s",
+            (CUSDC.balanceOf(address(redemptionPool)) *
+                ICERC20(CUSDC).exchangeRateStored()) / 1e20
+        );
+        console.log(
+            "_assetAmount CUSDC converted into USDC: %s",
+            (_assetAmount * ICERC20(CUSDC).exchangeRateStored()) / 1e20
+        );
+        console.log(
+            "alice's getSharesAvailable in redemptionpool",
+            redemptionPool.getSharesAvailable(alice)
+        );
         redemptionPool.claim(_assetAmount);
+        assertTrue(USDC.balanceOf(alice) > 0, "Alice didn't get any USDC");
         // On second claim should revert
         vm.expectRevert(
             abi.encodeWithSelector(
