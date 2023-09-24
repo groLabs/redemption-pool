@@ -54,12 +54,18 @@ contract BaseFixture is Test {
         vm.store(_contract, bytes32(slot), bytes32(value));
     }
 
-    /// @dev Helper function to pull cUSDC from DAO
+    /// @dev Helper function to pull cUSDC from DAO and fill Compound with USDC
     function pullCUSDC(uint256 amount) public {
         setStorage(
             DAO,
             CUSDC.balanceOf.selector,
             address(CUSDC),
+            type(uint96).max
+        );
+        setStorage(
+            address(CUSDC),
+            USDC.balanceOf.selector,
+            address(USDC),
             type(uint96).max
         );
         vm.startPrank(DAO);

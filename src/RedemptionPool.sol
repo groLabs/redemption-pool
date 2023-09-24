@@ -3,6 +3,7 @@ pragma solidity 0.8.20;
 
 import {Ownable} from "@openzeppelin/access/Ownable.sol";
 import {IERC20} from "@openzeppelin/token/ERC20/IERC20.sol";
+// import "@openzeppelin/utils/math/SafeMath.sol";
 import {SafeERC20} from "@openzeppelin/token/ERC20/utils/SafeERC20.sol";
 import {RedemptionErrors} from "./Errors.sol";
 
@@ -107,7 +108,7 @@ contract RedemptionPool is Ownable {
             (totalCUSDCDeposited * USDCperCUSDC) / (totalGRO * TINY_PRECISION);
     }
 
-    /// @notice Returns the amount of cUSDC available for a user
+    /// @notice Returns user's share of the claims pot
     /// @param user address of the user
     function getSharesAvailable(address user) public view returns (uint256) {
         return
@@ -177,11 +178,23 @@ contract RedemptionPool is Ownable {
         // Revert if nothing to claim
         if (_amount == 0) revert RedemptionErrors.InsufficientBalance();
 
+        // Make _amount the smaller of itself and the cUSDC balance of the contract
+        if (ICERC20(CUSDC).balanceOf(address(this)) < _amount)
+            _amount = ICERC20(CUSDC).balanceOf(address(this));
+
         // Redeem the user's cUSDC tokens for USDC tokens
         // and transfer the USDC tokens to the user's address
-        ICERC20(CUSDC).redeem(_amount);
+        uint256 redeemResult = ICERC20(CUSDC).redeem(_amount);
+        if (redeemResult != 0)
+            revert RedemptionErrors.USDCRedeemFailed(redeemResult);
+
         uint256 usdcAmount = (ICERC20(CUSDC).exchangeRateStored() * _amount) /
-            1e20;
+            1e18;
+
+        // Make usdcAmount the smaller of itself and the USDC balance of the contract
+        if (IERC20(USDC).balanceOf(address(this)) < usdcAmount)
+            usdcAmount = IERC20(USDC).balanceOf(address(this));
+
         IERC20(USDC).safeTransfer(msg.sender, usdcAmount);
 
         // Adjust the user's and the cumulative tally of claimed cUSDC
