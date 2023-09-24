@@ -189,7 +189,7 @@ contract RedemptionPool is Ownable {
             revert RedemptionErrors.USDCRedeemFailed(redeemResult);
 
         uint256 usdcAmount = (ICERC20(CUSDC).exchangeRateStored() * _amount) /
-            1e18;
+            1e20;
 
         // Make usdcAmount the smaller of itself and the USDC balance of the contract
         if (IERC20(USDC).balanceOf(address(this)) < usdcAmount)

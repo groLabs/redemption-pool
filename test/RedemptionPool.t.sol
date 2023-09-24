@@ -146,7 +146,7 @@ contract TestRedemptionPool is BaseFixture {
         vm.assume(_depositAmnt > 1e18);
         vm.assume(_depositAmnt < 100_000_000_000e18);
         vm.assume(_assetAmount > 1e8);
-        vm.assume(_assetAmount < 100_000_000e8);
+        vm.assume(_assetAmount < 1_000_000_000e8);
 
         setStorage(alice, GRO.balanceOf.selector, address(GRO), _depositAmnt);
         // Approve GRO to be spent by the RedemptionPool:
@@ -161,11 +161,19 @@ contract TestRedemptionPool is BaseFixture {
         pullCUSDC(_assetAmount);
 
         // Check user's shares
-        assertEq(redemptionPool.getSharesAvailable(alice), _assetAmount);
+        assertEq(
+            redemptionPool.getSharesAvailable(alice),
+            _assetAmount,
+            "User shares are off"
+        );
 
         // Check ppfs
         uint256 expectedPpfs = (_assetAmount * 1e18) / _depositAmnt;
-        assertEq(redemptionPool.getPricePerShare(), expectedPpfs);
+        assertEq(
+            redemptionPool.getPricePerShare(),
+            expectedPpfs,
+            "Price per share is off"
+        );
 
         // Roll to deadline and claim
         vm.warp(redemptionPool.DEADLINE() + 1);
@@ -177,9 +185,15 @@ contract TestRedemptionPool is BaseFixture {
 
         // Convert finalClaim from CUSDC to USDC
         uint256 USDCperCUSDC = ICERC20(CUSDC).exchangeRateStored();
-        uint256 finalClaimUSDC = (finalClaim * USDCperCUSDC) / 1e8;
+        console.log("finalClaim: %s", finalClaim);
+        uint256 finalClaimUSDC = (finalClaim * USDCperCUSDC) / 1e18;
+        console.log("finalClaimUSDC: %s", finalClaimUSDC);
 
-        assertEq(USDC.balanceOf(alice), finalClaimUSDC);
+        assertEq(
+            USDC.balanceOf(alice),
+            finalClaimUSDC,
+            "User did not get correct amount of USDC"
+        );
     }
 
     function testCantClaimIfDidntDeposit(
@@ -189,7 +203,7 @@ contract TestRedemptionPool is BaseFixture {
         vm.assume(_depositAmnt > 1e18);
         vm.assume(_depositAmnt < 100_000_000_000e18);
         vm.assume(_assetAmount > 1e8);
-        vm.assume(_assetAmount < 100_000_000e8);
+        vm.assume(_assetAmount < 1_000_000_000e8);
         setStorage(alice, GRO.balanceOf.selector, address(GRO), _depositAmnt);
         // Approve GRO to be spent by the RedemptionPool:
         vm.prank(alice);
@@ -285,7 +299,7 @@ contract TestRedemptionPool is BaseFixture {
         vm.assume(_depositAmnt > 1e18);
         vm.assume(_depositAmnt < 100_000_000e18);
         vm.assume(_assetAmount > 1e8);
-        vm.assume(_assetAmount < 500_000_000e18);
+        vm.assume(_assetAmount < 1_000_000_000e8);
 
         // Generate users:
         address payable[] memory _users = utils.createUsers(USER_COUNT);
@@ -389,8 +403,8 @@ contract TestRedemptionPool is BaseFixture {
             assertApproxEqAbs(
                 USDC.balanceOf(_users[i]),
                 ((_assetAmount / USER_COUNT) *
-                    ICERC20(CUSDC).exchangeRateStored()) / 1e18,
-                1e18,
+                    ICERC20(CUSDC).exchangeRateStored()) / 1e20,
+                1e1,
                 "User did not get correct amount of USDC"
             );
             vm.stopPrank();
@@ -409,7 +423,7 @@ contract TestRedemptionPool is BaseFixture {
         uint256 _assetAmount
     ) public {
         vm.assume(_assetAmount > 1e8);
-        vm.assume(_assetAmount < 100_000_000e8);
+        vm.assume(_assetAmount < 1_000_000_000e8);
 
         // Generate users:
         address payable[] memory _users = utils.createUsers(USER_COUNT);
@@ -439,19 +453,33 @@ contract TestRedemptionPool is BaseFixture {
             // Deposit GRO into the RedemptionPool:
             redemptionPool.deposit(_depositAmnt);
             // Check user balance
-            assertEq(redemptionPool.getUserBalance(_users[i]), _depositAmnt);
+            assertEq(
+                redemptionPool.getUserBalance(_users[i]),
+                _depositAmnt,
+                "User Balance is off"
+            );
             assertEq(
                 redemptionPool.getSharesAvailable(_users[i]),
-                (_depositAmnt * _assetAmount) / redemptionPool.totalGRO()
+                (_depositAmnt * _assetAmount) / redemptionPool.totalGRO(),
+                "Shares available is off"
             );
             vm.stopPrank();
         }
 
-        assertEq(GRO.balanceOf(address(redemptionPool)), _totalDepositAmnt);
-        assertEq(redemptionPool.totalGRO(), _totalDepositAmnt);
+        assertEq(
+            GRO.balanceOf(address(redemptionPool)),
+            _totalDepositAmnt,
+            "Incorrect total GRO in contract"
+        );
+        assertEq(
+            redemptionPool.totalGRO(),
+            _totalDepositAmnt,
+            "Incorrect total GRO in _totalDepositAmnt"
+        );
         assertEq(
             redemptionPool.getPricePerShare(),
-            (_assetAmount * 1e18) / redemptionPool.totalGRO()
+            (_assetAmount * 1e18) / redemptionPool.totalGRO(),
+            "Incorrect price per share"
         );
         // Warp to deadline
         vm.warp(redemptionPool.DEADLINE() + 1);
@@ -462,10 +490,13 @@ contract TestRedemptionPool is BaseFixture {
             redemptionPool.claim(
                 (_deposits[i] * _assetAmount) / redemptionPool.totalGRO()
             );
-            // Check user CUSDC balance is proportional to the amount of GRO deposited
-            assertEq(
-                CUSDC.balanceOf(_users[i]),
-                (_deposits[i] * _assetAmount) / redemptionPool.totalGRO()
+            // Check user USDC balance is proportional to the amount of GRO deposited
+            assertApproxEqAbs(
+                USDC.balanceOf(_users[i]),
+                (((_deposits[i] * _assetAmount) / redemptionPool.totalGRO()) *
+                    ICERC20(CUSDC).exchangeRateStored()) / 1e20,
+                1e1,
+                "User did not get correct amount of USDC"
             );
             vm.stopPrank();
         }
