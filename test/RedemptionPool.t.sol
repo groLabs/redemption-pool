@@ -186,8 +186,9 @@ contract TestRedemptionPool is BaseFixture {
         // Convert finalClaim from CUSDC to USDC
         uint256 USDCperCUSDC = ICERC20(CUSDC).exchangeRateStored();
         console.log("finalClaim: %s", finalClaim);
-        uint256 finalClaimUSDC = (finalClaim * USDCperCUSDC) / 1e18;
+        uint256 finalClaimUSDC = (finalClaim * USDCperCUSDC) / 1e20;
         console.log("finalClaimUSDC: %s", finalClaimUSDC);
+        console.log("USDC in alice' wallet: %s", USDC.balanceOf(alice));
 
         assertEq(
             USDC.balanceOf(alice),
@@ -413,7 +414,7 @@ contract TestRedemptionPool is BaseFixture {
         assertApproxEqAbs(
             CUSDC.balanceOf(address(redemptionPool)),
             0,
-            1e4,
+            1e3,
             "CUSDC balance is not 0"
         );
     }

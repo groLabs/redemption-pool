@@ -178,10 +178,6 @@ contract RedemptionPool is Ownable {
         // Revert if nothing to claim
         if (_amount == 0) revert RedemptionErrors.InsufficientBalance();
 
-        // Make _amount the smaller of itself and the cUSDC balance of the contract
-        if (ICERC20(CUSDC).balanceOf(address(this)) < _amount)
-            _amount = ICERC20(CUSDC).balanceOf(address(this));
-
         // Redeem the user's cUSDC tokens for USDC tokens
         // and transfer the USDC tokens to the user's address
         uint256 redeemResult = ICERC20(CUSDC).redeem(_amount);
@@ -190,10 +186,6 @@ contract RedemptionPool is Ownable {
 
         uint256 usdcAmount = (ICERC20(CUSDC).exchangeRateStored() * _amount) /
             1e20;
-
-        // Make usdcAmount the smaller of itself and the USDC balance of the contract
-        if (IERC20(USDC).balanceOf(address(this)) < usdcAmount)
-            usdcAmount = IERC20(USDC).balanceOf(address(this));
 
         IERC20(USDC).safeTransfer(msg.sender, usdcAmount);
 
