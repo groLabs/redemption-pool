@@ -308,6 +308,7 @@ contract TestRedemptionPool is BaseFixture {
         pullCUSDC(_assetAmount);
         // Give users some GRO:
         for (uint256 i = 0; i < USER_COUNT; i++) {
+
             setStorage(
                 _users[i],
                 GRO.balanceOf.selector,
@@ -320,6 +321,7 @@ contract TestRedemptionPool is BaseFixture {
             // Deposit GRO into the RedemptionPool:
             redemptionPool.deposit(_depositAmnt);
             // Check user balance
+
             assertEq(
                 redemptionPool.getUserBalance(_users[0]),
                 _depositAmnt,
@@ -334,6 +336,7 @@ contract TestRedemptionPool is BaseFixture {
         }
 
         // Checks:
+
         assertEq(
             GRO.balanceOf(address(redemptionPool)),
             _depositAmnt * USER_COUNT,
@@ -426,6 +429,7 @@ contract TestRedemptionPool is BaseFixture {
         vm.assume(_assetAmount > 1e8);
         vm.assume(_assetAmount < 1_000_000_000e8);
 
+
         // Generate users:
         address payable[] memory _users = utils.createUsers(USER_COUNT);
         // Pull in assets from the DAO
@@ -436,6 +440,7 @@ contract TestRedemptionPool is BaseFixture {
         uint256 _totalDepositAmnt;
         uint256[] memory _deposits = new uint256[](USER_COUNT);
         for (uint256 i = 0; i < USER_COUNT; i++) {
+
             _deposits[i] =
                 uint256(keccak256(abi.encodePacked(block.timestamp, i))) %
                 1e25;
@@ -448,12 +453,14 @@ contract TestRedemptionPool is BaseFixture {
                 address(GRO),
                 _depositAmnt
             );
+
             // Approve GRO to be spent by the RedemptionPool:
             vm.startPrank(_users[i]);
             GRO.approve(address(redemptionPool), _depositAmnt);
             // Deposit GRO into the RedemptionPool:
             redemptionPool.deposit(_depositAmnt);
             // Check user balance
+
             assertEq(
                 redemptionPool.getUserBalance(_users[i]),
                 _depositAmnt,
@@ -463,6 +470,7 @@ contract TestRedemptionPool is BaseFixture {
                 redemptionPool.getSharesAvailable(_users[i]),
                 (_depositAmnt * _assetAmount) / redemptionPool.totalGRO(),
                 "Shares available is off"
+
             );
             vm.stopPrank();
         }
@@ -482,6 +490,7 @@ contract TestRedemptionPool is BaseFixture {
             (_assetAmount * 1e18) / redemptionPool.totalGRO(),
             "Incorrect price per share"
         );
+
         // Warp to deadline
         vm.warp(redemptionPool.DEADLINE() + 1);
 
@@ -499,6 +508,7 @@ contract TestRedemptionPool is BaseFixture {
                 1e1,
                 "User did not get correct amount of USDC"
             );
+
             vm.stopPrank();
         }
 
