@@ -5,7 +5,7 @@ import "./BaseFixture.sol";
 import {RedemptionErrors} from "../src/Errors.sol";
 
 contract TestRedemptionPool is BaseFixture {
-    uint256 public constant USER_COUNT = 10;
+    uint256 public constant USER_COUNT = 100;
 
     function setUp() public override {
         super.setUp();
@@ -46,7 +46,9 @@ contract TestRedemptionPool is BaseFixture {
         vm.warp(redemptionPool.DEADLINE() + 1);
         // Deposit GRO into the RedemptionPool:
         vm.startPrank(alice);
-        vm.expectRevert(abi.encodeWithSelector(RedemptionErrors.DeadlineExceeded.selector));
+        vm.expectRevert(
+            abi.encodeWithSelector(RedemptionErrors.DeadlineExceeded.selector)
+        );
         redemptionPool.deposit(_depositAmnt);
         vm.stopPrank();
     }
@@ -88,7 +90,9 @@ contract TestRedemptionPool is BaseFixture {
         vm.warp(redemptionPool.DEADLINE() + 1);
         // Withdraw after deadline:
         vm.startPrank(alice);
-        vm.expectRevert(abi.encodeWithSelector(RedemptionErrors.DeadlineExceeded.selector));
+        vm.expectRevert(
+            abi.encodeWithSelector(RedemptionErrors.DeadlineExceeded.selector)
+        );
         redemptionPool.withdraw(_depositAmnt);
         vm.stopPrank();
     }
@@ -121,7 +125,9 @@ contract TestRedemptionPool is BaseFixture {
 
     function testCantSweepGRO() public {
         vm.prank(DAO);
-        vm.expectRevert(abi.encodeWithSelector(RedemptionErrors.NoSweepGro.selector));
+        vm.expectRevert(
+            abi.encodeWithSelector(RedemptionErrors.NoSweepGro.selector)
+        );
         redemptionPool.sweep(address(GRO));
     }
 
@@ -129,7 +135,10 @@ contract TestRedemptionPool is BaseFixture {
     //                              Claim flow                                 //
     /////////////////////////////////////////////////////////////////////////////
 
-    function testSingleUserHasAllShares(uint256 _depositAmnt, uint256 _assetAmount) public {
+    function testSingleUserHasAllShares(
+        uint256 _depositAmnt,
+        uint256 _assetAmount
+    ) public {
         _depositAmnt = bound(_depositAmnt, 1e18, 100_000_000e18);
         _assetAmount = bound(_assetAmount, 1e8, 1_000_000_000e8);
 
@@ -165,7 +174,10 @@ contract TestRedemptionPool is BaseFixture {
         assertApproxEqAbs(USDC.balanceOf(alice), finalClaimUSDC, 1e1);
     }
 
-    function testCantClaimIfDidntDeposit(uint256 _depositAmnt, uint256 _assetAmount) public {
+    function testCantClaimIfDidntDeposit(
+        uint256 _depositAmnt,
+        uint256 _assetAmount
+    ) public {
         _depositAmnt = bound(_depositAmnt, 1e18, 100_000_000e18);
         _assetAmount = bound(_assetAmount, 1e8, 1_000_000_000e8);
 
@@ -182,11 +194,16 @@ contract TestRedemptionPool is BaseFixture {
         vm.warp(redemptionPool.DEADLINE() + 1);
         // Bob should be not be able to claim
         vm.prank(bob);
-        vm.expectRevert(abi.encodeWithSelector(RedemptionErrors.InvalidClaim.selector));
+        vm.expectRevert(
+            abi.encodeWithSelector(RedemptionErrors.InvalidClaim.selector)
+        );
         redemptionPool.claim(1e8);
     }
 
-    function testCantClaimMultipleTimes(uint256 _depositAmnt, uint256 _assetAmount) public {
+    function testCantClaimMultipleTimes(
+        uint256 _depositAmnt,
+        uint256 _assetAmount
+    ) public {
         _depositAmnt = bound(_depositAmnt, 1e18, 100_000_000e18);
         _assetAmount = bound(_assetAmount, 1e8, 1_000_000_000e8);
 
@@ -208,7 +225,9 @@ contract TestRedemptionPool is BaseFixture {
         assertTrue(USDC.balanceOf(alice) > 0);
         assertTrue(CUSDC.balanceOf(address(redemptionPool)) == 0);
         // On second claim should revert
-        vm.expectRevert(abi.encodeWithSelector(RedemptionErrors.InvalidClaim.selector));
+        vm.expectRevert(
+            abi.encodeWithSelector(RedemptionErrors.InvalidClaim.selector)
+        );
         redemptionPool.claim(_assetAmount);
         vm.stopPrank();
     }
@@ -218,7 +237,10 @@ contract TestRedemptionPool is BaseFixture {
     /////////////////////////////////////////////////////////////////////////////
 
     /// @dev Advanced case scenario when there are lots of users depositing equal amounts of GRO tokens
-    function testMultiUserDepositsAndClaimsNoEntropy(uint256 _depositAmnt, uint256 _assetAmount) public {
+    function testMultiUserDepositsAndClaimsNoEntropy(
+        uint256 _depositAmnt,
+        uint256 _assetAmount
+    ) public {
         _depositAmnt = bound(_depositAmnt, 1e18, 100_000_000e18);
         _assetAmount = bound(_assetAmount, 1e8, 1_000_000_000e6);
 
@@ -228,7 +250,12 @@ contract TestRedemptionPool is BaseFixture {
         pullCUSDC(_assetAmount);
         // Give users some GRO:
         for (uint256 i = 0; i < USER_COUNT; i++) {
-            setStorage(_users[i], GRO.balanceOf.selector, address(GRO), _depositAmnt);
+            setStorage(
+                _users[i],
+                GRO.balanceOf.selector,
+                address(GRO),
+                _depositAmnt
+            );
             // Approve GRO to be spent by the RedemptionPool:
             vm.startPrank(_users[i]);
             GRO.approve(address(redemptionPool), _depositAmnt);
@@ -236,7 +263,11 @@ contract TestRedemptionPool is BaseFixture {
             redemptionPool.deposit(_depositAmnt);
             // Check user balance
 
-            assertEq(redemptionPool.getUserBalance(_users[0]), _depositAmnt, "User Balance is off");
+            assertEq(
+                redemptionPool.getUserBalance(_users[0]),
+                _depositAmnt,
+                "User Balance is off"
+            );
             assertEq(
                 redemptionPool.getSharesAvailable(_users[0]),
                 (_depositAmnt * _assetAmount) / redemptionPool.totalGRO(),
@@ -247,11 +278,17 @@ contract TestRedemptionPool is BaseFixture {
 
         // Checks:
 
-        assertEq(GRO.balanceOf(address(redemptionPool)), _depositAmnt * USER_COUNT);
+        assertEq(
+            GRO.balanceOf(address(redemptionPool)),
+            _depositAmnt * USER_COUNT
+        );
         assertEq(redemptionPool.totalGRO(), _depositAmnt * USER_COUNT);
         // Check that the total amount of CUSDC deposited is equal to the amount pulled from the DAO
         assertEq(CUSDC.balanceOf(address(redemptionPool)), _assetAmount);
-        assertEq(redemptionPool.getPricePerShare(), (_assetAmount * 1e18) / redemptionPool.totalGRO());
+        assertEq(
+            redemptionPool.getPricePerShare(),
+            (_assetAmount * 1e18) / redemptionPool.totalGRO()
+        );
 
         // Warp to deadline
         vm.warp(redemptionPool.DEADLINE() + 1);
@@ -260,7 +297,9 @@ contract TestRedemptionPool is BaseFixture {
             vm.startPrank(_users[i]);
             redemptionPool.claim(_assetAmount / USER_COUNT);
             assertEq(
-                USDC.balanceOf(_users[i]), ((_assetAmount / USER_COUNT) * ICERC20(CUSDC).exchangeRateStored()) / 1e18
+                USDC.balanceOf(_users[i]),
+                ((_assetAmount / USER_COUNT) *
+                    ICERC20(CUSDC).exchangeRateStored()) / 1e18
             );
             vm.stopPrank();
         }
@@ -269,7 +308,9 @@ contract TestRedemptionPool is BaseFixture {
     }
 
     /// @dev Advanced case scenario when there are lots of users depositing non-equal amounts of GRO tokens
-    function testMultiUserDepositsAndClaimsEntropy(uint256 _assetAmount) public {
+    function testMultiUserDepositsAndClaimsEntropy(
+        uint256 _assetAmount
+    ) public {
         _assetAmount = bound(_assetAmount, 1e8, 1_000_000_000e8);
 
         // Generate users:
@@ -282,11 +323,18 @@ contract TestRedemptionPool is BaseFixture {
         uint256 _totalDepositAmnt;
         uint256[] memory _deposits = new uint256[](USER_COUNT);
         for (uint256 i = 0; i < USER_COUNT; i++) {
-            _deposits[i] = uint256(keccak256(abi.encodePacked(block.timestamp, i))) % 1e25;
+            _deposits[i] =
+                uint256(keccak256(abi.encodePacked(block.timestamp, i))) %
+                1e25;
             _depositAmnt = _deposits[i];
             _totalDepositAmnt += _depositAmnt;
             vm.warp(block.timestamp + i);
-            setStorage(_users[i], GRO.balanceOf.selector, address(GRO), _depositAmnt);
+            setStorage(
+                _users[i],
+                GRO.balanceOf.selector,
+                address(GRO),
+                _depositAmnt
+            );
 
             // Approve GRO to be spent by the RedemptionPool:
             vm.startPrank(_users[i]);
@@ -295,7 +343,11 @@ contract TestRedemptionPool is BaseFixture {
             redemptionPool.deposit(_depositAmnt);
             // Check user balance
 
-            assertEq(redemptionPool.getUserBalance(_users[i]), _depositAmnt, "User Balance is off");
+            assertEq(
+                redemptionPool.getUserBalance(_users[i]),
+                _depositAmnt,
+                "User Balance is off"
+            );
             assertEq(
                 redemptionPool.getSharesAvailable(_users[i]),
                 (_depositAmnt * _assetAmount) / redemptionPool.totalGRO(),
@@ -304,8 +356,16 @@ contract TestRedemptionPool is BaseFixture {
             vm.stopPrank();
         }
 
-        assertEq(GRO.balanceOf(address(redemptionPool)), _totalDepositAmnt, "Incorrect total GRO in contract");
-        assertEq(redemptionPool.totalGRO(), _totalDepositAmnt, "Incorrect total GRO in _totalDepositAmnt");
+        assertEq(
+            GRO.balanceOf(address(redemptionPool)),
+            _totalDepositAmnt,
+            "Incorrect total GRO in contract"
+        );
+        assertEq(
+            redemptionPool.totalGRO(),
+            _totalDepositAmnt,
+            "Incorrect total GRO in _totalDepositAmnt"
+        );
         assertEq(
             redemptionPool.getPricePerShare(),
             (_assetAmount * 1e18) / redemptionPool.totalGRO(),
@@ -318,24 +378,34 @@ contract TestRedemptionPool is BaseFixture {
         // Withdraw for each user:
         for (uint256 i = 0; i < USER_COUNT; i++) {
             vm.startPrank(_users[i]);
-            redemptionPool.claim((_deposits[i] * _assetAmount) / redemptionPool.totalGRO());
+            redemptionPool.claim(
+                (_deposits[i] * _assetAmount) / redemptionPool.totalGRO()
+            );
             // Check user USDC balance is proportional to the amount of GRO deposited
             assertApproxEqAbs(
                 USDC.balanceOf(_users[i]),
-                (((_deposits[i] * _assetAmount) / redemptionPool.totalGRO()) * ICERC20(CUSDC).exchangeRateStored())
-                    / 1e18,
-                1e1
+                (((_deposits[i] * _assetAmount) / redemptionPool.totalGRO()) *
+                    ICERC20(CUSDC).exchangeRateStored()) / 1e18,
+                1e1,
+                "User did not get correct amount of USDC"
             );
 
             vm.stopPrank();
         }
 
         // Check that all CUSDC was claimed:
-        assertApproxEqAbs(CUSDC.balanceOf(address(redemptionPool)), 0, 1e8, "CUSDC balance is not 0");
+        assertApproxEqAbs(
+            CUSDC.balanceOf(address(redemptionPool)),
+            0,
+            1e8,
+            "CUSDC balance is not 0"
+        );
     }
 
     /// @dev Advanced case scenario when there are lots of users depositing non-equal amounts of GRO tokens
-    function testMultiUserDepositsAndClaimsEntropyWithDAOTopUps(uint256 _assetAmount) public {
+    function testMultiUserDepositsAndClaimsEntropyWithDAOTopUps(
+        uint256 _assetAmount
+    ) public {
         _assetAmount = bound(_assetAmount, 1e8, 1_000_000_000e8);
 
         // Generate users:
@@ -349,18 +419,29 @@ contract TestRedemptionPool is BaseFixture {
         uint256 _totalDepositAmnt;
         uint256[] memory _deposits = new uint256[](USER_COUNT);
         for (uint256 i = 0; i < USER_COUNT; i++) {
-            _deposits[i] = uint256(keccak256(abi.encodePacked(block.timestamp, i))) % 1e25;
+            _deposits[i] =
+                uint256(keccak256(abi.encodePacked(block.timestamp, i))) %
+                1e25;
             _depositAmnt = _deposits[i];
             _totalDepositAmnt += _depositAmnt;
             vm.warp(block.timestamp + i);
-            setStorage(_users[i], GRO.balanceOf.selector, address(GRO), _depositAmnt);
+            setStorage(
+                _users[i],
+                GRO.balanceOf.selector,
+                address(GRO),
+                _depositAmnt
+            );
             // Approve GRO to be spent by the RedemptionPool:
             vm.startPrank(_users[i]);
             GRO.approve(address(redemptionPool), _depositAmnt);
             // Deposit GRO into the RedemptionPool:
             redemptionPool.deposit(_depositAmnt);
             // Check user balance
-            assertEq(redemptionPool.getUserBalance(_users[i]), _depositAmnt, "User Balance is off");
+            assertEq(
+                redemptionPool.getUserBalance(_users[i]),
+                _depositAmnt,
+                "User Balance is off"
+            );
             assertEq(
                 redemptionPool.getSharesAvailable(_users[i]),
                 (_depositAmnt * _assetAmount) / redemptionPool.totalGRO(),
@@ -371,20 +452,26 @@ contract TestRedemptionPool is BaseFixture {
 
         assertEq(GRO.balanceOf(address(redemptionPool)), _totalDepositAmnt);
         assertEq(redemptionPool.totalGRO(), _totalDepositAmnt);
-        assertEq(redemptionPool.getPricePerShare(), (_assetAmount * 1e18) / redemptionPool.totalGRO());
+        assertEq(
+            redemptionPool.getPricePerShare(),
+            (_assetAmount * 1e18) / redemptionPool.totalGRO()
+        );
         // Warp to deadline
         vm.warp(redemptionPool.DEADLINE() + 1);
 
         // Withdraw for each user:
         for (uint256 i = 0; i < USER_COUNT / 2; i++) {
             vm.startPrank(_users[i]);
-            redemptionPool.claim((_deposits[i] * _assetAmount) / redemptionPool.totalGRO());
+            redemptionPool.claim(
+                (_deposits[i] * _assetAmount) / redemptionPool.totalGRO()
+            );
             // Check user USDC balance is proportional to the amount of GRO deposited
             assertApproxEqAbs(
                 USDC.balanceOf(_users[i]),
-                (((_deposits[i] * _assetAmount) / redemptionPool.totalGRO()) * ICERC20(CUSDC).exchangeRateStored())
-                    / 1e18,
-                1e1
+                (((_deposits[i] * _assetAmount) / redemptionPool.totalGRO()) *
+                    ICERC20(CUSDC).exchangeRateStored()) / 1e18,
+                1e2,
+                "User did not get correct amount of USDC in first claim"
             );
 
             vm.stopPrank();
@@ -397,9 +484,9 @@ contract TestRedemptionPool is BaseFixture {
             redemptionPool.claim(redemptionPool.getSharesAvailable(_users[i]));
 
             // Add the first round claims to the calculated claims for this round
-            uint256 totalExpectedUSDC = (
-                ((_deposits[i] * _assetAmount * 2) / redemptionPool.totalGRO()) * ICERC20(CUSDC).exchangeRateStored()
-            ) / 1e18;
+            uint256 totalExpectedUSDC = (((_deposits[i] * _assetAmount * 2) /
+                redemptionPool.totalGRO()) *
+                ICERC20(CUSDC).exchangeRateStored()) / 1e18;
 
             // Check user USDC balance is proportional to the amount of GRO deposited
             assertApproxEqAbs(
@@ -411,6 +498,11 @@ contract TestRedemptionPool is BaseFixture {
             vm.stopPrank();
         }
         // Check that all CUSDC was claimed:
-        assertApproxEqAbs(CUSDC.balanceOf(address(redemptionPool)), 0, 1e1);
+        assertApproxEqAbs(
+            CUSDC.balanceOf(address(redemptionPool)),
+            0,
+            1e8,
+            "CUSDC balance is not 0"
+        );
     }
 }
