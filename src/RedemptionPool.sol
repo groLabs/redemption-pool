@@ -28,17 +28,12 @@ contract RedemptionPool is Ownable {
     uint256 public immutable DEADLINE;
     uint256 internal constant PRECISION = 1e18;
     uint256 internal constant TINY_PRECISION = 1e2;
-    uint256 internal constant TWENTY_PRECISION = 1e20;
-    address internal constant DAO =
-        address(0x359F4fe841f246a095a82cb26F5819E10a91fe0d);
+    address internal constant DAO = address(0x359F4fe841f246a095a82cb26F5819E10a91fe0d);
 
     // TOKENS
-    IERC20 public constant GRO =
-        IERC20(0x3Ec8798B81485A254928B70CDA1cf0A2BB0B74D7);
-    ICERC20 public constant CUSDC =
-        ICERC20(0x39AA39c021dfbaE8faC545936693aC917d5E7563);
-    address public constant USDC =
-        address(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
+    IERC20 public constant GRO = IERC20(0x3Ec8798B81485A254928B70CDA1cf0A2BB0B74D7);
+    ICERC20 public constant CUSDC = ICERC20(0x39AA39c021dfbaE8faC545936693aC917d5E7563);
+    IERC20 public constant USDC = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
 
     /////////////////////////////////////////////////////////////////////////////
     //                                  Modifiers                              //
@@ -74,11 +69,7 @@ contract RedemptionPool is Ownable {
     event Withdraw(address indexed user, uint256 amount);
     event Claim(address indexed user, uint256 amount);
     event CUSDCDeposit(uint256 amount);
-    event PositionTransferred(
-        address indexed from,
-        address indexed to,
-        uint256 amount
-    );
+    event PositionTransferred(address indexed from, address indexed to, uint256 amount);
 
     /////////////////////////////////////////////////////////////////////////////
     //                                  CONSTRUCTOR                            //
@@ -105,17 +96,13 @@ contract RedemptionPool is Ownable {
         uint256 USDCperCUSDC = ICERC20(CUSDC).exchangeRateStored();
 
         // Calculate USDC per GRO (result will have 6 decimals)
-        return
-            (totalCUSDCDeposited * USDCperCUSDC) / (totalGRO * TINY_PRECISION);
+        return (totalCUSDCDeposited * USDCperCUSDC) / (totalGRO * TINY_PRECISION);
     }
 
     /// @notice Returns user's share of the claims pot
     /// @param user address of the user
     function getSharesAvailable(address user) public view returns (uint256) {
-        return
-            (_userGROBalance[user] * totalCUSDCDeposited) /
-            totalGRO -
-            _userClaims[user];
+        return (_userGROBalance[user] * totalCUSDCDeposited) / totalGRO - _userClaims[user];
     }
 
     /// @notice Returns the amount of GRO user has deposited
@@ -153,8 +140,9 @@ contract RedemptionPool is Ownable {
     /// @notice withdraw deposited GRO tokens before the deadline
     /// @param _amount amount of GRO tokens to withdraw
     function withdraw(uint256 _amount) external onlyBeforeDeadline {
-        if (_userGROBalance[msg.sender] < _amount)
+        if (_userGROBalance[msg.sender] < _amount) {
             revert RedemptionErrors.InsufficientBalance();
+        }
 
         _userGROBalance[msg.sender] -= _amount;
         totalGRO -= _amount;
@@ -174,20 +162,19 @@ contract RedemptionPool is Ownable {
         uint256 userClaim = getSharesAvailable(msg.sender);
 
         // Check that _amount is greater than 0 and smaller (or equal to) than userClaim
-        if (!(_amount > 0 && _amount <= userClaim))
+        if (!(_amount > 0 && _amount <= userClaim)) {
             revert RedemptionErrors.InvalidClaim();
+        }
 
         // Redeem the user's cUSDC tokens for USDC tokens
         // and transfer the USDC tokens to the user's address
-
+        uint256 usdcBalanceBefore = USDC.balanceOf(address(this));
         uint256 redeemResult = ICERC20(CUSDC).redeem(_amount);
-        if (redeemResult != 0)
+        if (redeemResult != 0) {
             revert RedemptionErrors.USDCRedeemFailed(redeemResult);
-
-        IERC20(USDC).safeTransfer(
-            msg.sender,
-            IERC20(USDC).balanceOf(address(this))
-        );
+        }
+        uint256 usdcRedeemed = USDC.balanceOf(address(this)) - usdcBalanceBefore;
+        USDC.safeTransfer(msg.sender, usdcRedeemed);
 
         // Adjust the user's and the cumulative tally of claimed cUSDC
         _userClaims[msg.sender] += _amount;
@@ -216,24 +203,6 @@ contract RedemptionPool is Ownable {
         if (_token == address(GRO)) revert RedemptionErrors.NoSweepGro();
 
         // Transfers the tokens to the owner
-        IERC20(_token).safeTransfer(
-            owner(),
-            IERC20(_token).balanceOf(address(this))
-        );
+        IERC20(_token).safeTransfer(owner(), IERC20(_token).balanceOf(address(this)));
     }
-
-    // @notice Transfers a portion or all of a user's redeemable GRO position to a new address.
-    // @param to The address to which the GRO position will be transferred.
-    // @param amount The amount of GRO to transfer.
-    // THIS FUNCTION IS BORKED AND NEEDS REWRITING. GRO != cUSDC
-    /*
-    function transferPosition(address _to, uint256 _amount) public {
-        if (_amount > (_userGROBalance[msg.sender] - _userClaims[msg.sender]))
-            revert RedemptionErrors.InsufficientBalance();
-
-        _userGROBalance[msg.sender] -= _amount;
-        _userGROBalance[_to] += _amount;
-
-        emit PositionTransferred(msg.sender, _to, _amount);
-    }*/
 }
