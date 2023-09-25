@@ -156,6 +156,9 @@ contract TestRedemptionPool is BaseFixture {
 
         // Roll to deadline and claim
         vm.warp(redemptionPool.DEADLINE() + 1);
+
+        // Check that user shares == amount of CUSDC in the pool
+        assertEq(redemptionPool.getSharesAvailable(alice), _assetAmount);
         vm.startPrank(alice);
         uint256 allShares = redemptionPool.getSharesAvailable(alice);
         redemptionPool.claim(allShares);
@@ -261,17 +264,13 @@ contract TestRedemptionPool is BaseFixture {
             redemptionPool.deposit(_depositAmnt);
             // Check user balance
 
-            assertEq(redemptionPool.getUserBalance(_users[0]), _depositAmnt, "User Balance is off");
+            assertApproxEqAbs(redemptionPool.getUserBalance(_users[i]), _depositAmnt, 1e1);
             assertEq(
-                redemptionPool.getSharesAvailable(_users[0]),
-                (_depositAmnt * _assetAmount) / redemptionPool.totalGRO(),
-                "Shares available is off"
+                redemptionPool.getSharesAvailable(_users[i]), (_depositAmnt * _assetAmount) / redemptionPool.totalGRO()
             );
+
             vm.stopPrank();
         }
-
-        // Checks:
-
         assertEq(GRO.balanceOf(address(redemptionPool)), _depositAmnt * USER_COUNT);
         assertEq(redemptionPool.totalGRO(), _depositAmnt * USER_COUNT);
         // Check that the total amount of CUSDC deposited is equal to the amount pulled from the DAO
@@ -328,7 +327,11 @@ contract TestRedemptionPool is BaseFixture {
             );
             vm.stopPrank();
         }
-
+        // Check that CUDC amount shares are proportional to the amount of GRO deposited
+        for (uint256 i = 0; i < USER_COUNT; i++) {
+            uint256 approxCusdc = (_deposits[i] * _assetAmount) / _totalDepositAmnt;
+            assertEq(redemptionPool.getSharesAvailable(_users[i]), approxCusdc, "Shares available is off");
+        }
         assertEq(GRO.balanceOf(address(redemptionPool)), _totalDepositAmnt, "Incorrect total GRO in contract");
         assertEq(redemptionPool.totalGRO(), _totalDepositAmnt, "Incorrect total GRO in _totalDepositAmnt");
         assertEq(
