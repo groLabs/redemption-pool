@@ -6,6 +6,7 @@ import {IERC20} from "@openzeppelin/token/ERC20/IERC20.sol";
 // import "@openzeppelin/utils/math/SafeMath.sol";
 import {SafeERC20} from "@openzeppelin/token/ERC20/utils/SafeERC20.sol";
 import {RedemptionErrors} from "./Errors.sol";
+
 /////////////////////////////////////////////////////////////////////////////
 //                                  Interfaces                             //
 /////////////////////////////////////////////////////////////////////////////
@@ -28,12 +29,16 @@ contract RedemptionPool is Ownable {
     uint256 public immutable DEADLINE;
     uint256 internal constant PRECISION = 1e18;
     uint256 internal constant TINY_PRECISION = 1e2;
-    address internal constant DAO = address(0x359F4fe841f246a095a82cb26F5819E10a91fe0d);
+    address internal constant DAO =
+        address(0x359F4fe841f246a095a82cb26F5819E10a91fe0d);
 
     // TOKENS
-    IERC20 public constant GRO = IERC20(0x3Ec8798B81485A254928B70CDA1cf0A2BB0B74D7);
-    ICERC20 public constant CUSDC = ICERC20(0x39AA39c021dfbaE8faC545936693aC917d5E7563);
-    IERC20 public constant USDC = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
+    IERC20 public constant GRO =
+        IERC20(0x3Ec8798B81485A254928B70CDA1cf0A2BB0B74D7);
+    ICERC20 public constant CUSDC =
+        ICERC20(0x39AA39c021dfbaE8faC545936693aC917d5E7563);
+    IERC20 public constant USDC =
+        IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
 
     /////////////////////////////////////////////////////////////////////////////
     //                                  Modifiers                              //
@@ -69,7 +74,11 @@ contract RedemptionPool is Ownable {
     event Withdraw(address indexed user, uint256 amount);
     event Claim(address indexed user, uint256 amount);
     event CUSDCDeposit(uint256 amount);
-    event PositionTransferred(address indexed from, address indexed to, uint256 amount);
+    event PositionTransferred(
+        address indexed from,
+        address indexed to,
+        uint256 amount
+    );
 
     /////////////////////////////////////////////////////////////////////////////
     //                                  CONSTRUCTOR                            //
@@ -95,13 +104,18 @@ contract RedemptionPool is Ownable {
         // Get the exchange rate from cUSDC to USDC (18 decimals)
         uint256 USDCperCUSDC = ICERC20(CUSDC).exchangeRateStored();
 
-        return (totalCUSDCDeposited * USDCperCUSDC) / totalGRO;
+        // Calculate USDC per GRO (result will have 6 decimals)
+        return
+            (totalCUSDCDeposited * USDCperCUSDC) / (totalGRO * TINY_PRECISION);
     }
 
     /// @notice Returns user's share of the claims pot
     /// @param user address of the user
     function getSharesAvailable(address user) public view returns (uint256) {
-        return (_userGROBalance[user] * totalCUSDCDeposited) / totalGRO - _userClaims[user];
+        return
+            (_userGROBalance[user] * totalCUSDCDeposited) /
+            totalGRO -
+            _userClaims[user];
     }
 
     /// @notice Returns the amount of GRO user has deposited
@@ -172,7 +186,8 @@ contract RedemptionPool is Ownable {
         if (redeemResult != 0) {
             revert RedemptionErrors.USDCRedeemFailed(redeemResult);
         }
-        uint256 usdcRedeemed = USDC.balanceOf(address(this)) - usdcBalanceBefore;
+        uint256 usdcRedeemed = USDC.balanceOf(address(this)) -
+            usdcBalanceBefore;
         USDC.safeTransfer(msg.sender, usdcRedeemed);
 
         // Adjust the user's and the cumulative tally of claimed cUSDC
@@ -202,6 +217,9 @@ contract RedemptionPool is Ownable {
         if (_token == address(GRO)) revert RedemptionErrors.NoSweepGro();
 
         // Transfers the tokens to the owner
-        IERC20(_token).safeTransfer(owner(), IERC20(_token).balanceOf(address(this)));
+        IERC20(_token).safeTransfer(
+            owner(),
+            IERC20(_token).balanceOf(address(this))
+        );
     }
 }
