@@ -143,10 +143,8 @@ contract TestRedemptionPool is BaseFixture {
         uint256 _depositAmnt,
         uint256 _assetAmount
     ) public {
-        vm.assume(_depositAmnt > 1e18);
-        vm.assume(_depositAmnt < 100_000_000_000e18);
-        vm.assume(_assetAmount > 1e8);
-        vm.assume(_assetAmount < 1_000_000_000e8);
+        _depositAmnt = bound(_depositAmnt, 1e18, 100_000_000e18);
+        _assetAmount = bound(_assetAmount, 1e8, 1_000_000_000e8);
 
         setStorage(alice, GRO.balanceOf.selector, address(GRO), _depositAmnt);
         // Approve GRO to be spent by the RedemptionPool:
@@ -201,10 +199,9 @@ contract TestRedemptionPool is BaseFixture {
         uint256 _depositAmnt,
         uint256 _assetAmount
     ) public {
-        vm.assume(_depositAmnt > 1e18);
-        vm.assume(_depositAmnt < 100_000_000_000e18);
-        vm.assume(_assetAmount > 1e8);
-        vm.assume(_assetAmount < 1_000_000_000e8);
+        _depositAmnt = bound(_depositAmnt, 1e18, 100_000_000e18);
+        _assetAmount = bound(_assetAmount, 1e8, 1_000_000_000e8);
+
         setStorage(alice, GRO.balanceOf.selector, address(GRO), _depositAmnt);
         // Approve GRO to be spent by the RedemptionPool:
         vm.prank(alice);
@@ -230,10 +227,9 @@ contract TestRedemptionPool is BaseFixture {
         uint256 _depositAmnt,
         uint256 _assetAmount
     ) public {
-        vm.assume(_depositAmnt > 1e18);
-        vm.assume(_depositAmnt < 100_000_000_000e18);
-        vm.assume(_assetAmount > 1e8);
-        vm.assume(_assetAmount < 100_000_000e8);
+        _depositAmnt = bound(_depositAmnt, 1e18, 100_000_000e18);
+        _assetAmount = bound(_assetAmount, 1e8, 1_000_000_000e8);
+
         setStorage(alice, GRO.balanceOf.selector, address(GRO), _depositAmnt);
         // Approve GRO to be spent by the RedemptionPool:
         vm.prank(alice);
@@ -297,8 +293,8 @@ contract TestRedemptionPool is BaseFixture {
         uint256 _depositAmnt,
         uint256 _assetAmount
     ) public {
-        vm.assume(_depositAmnt > 1e18 && _depositAmnt <= 100_000_000e18);
-        vm.assume(_assetAmount > 1e8 && _assetAmount <= 1_000_000_000e8);
+        _depositAmnt = bound(_depositAmnt, 1e18, 100_000_000e18);
+        _assetAmount = bound(_assetAmount, 1e8, 1_000_000_000e8);
 
         // Generate users:
         address payable[] memory _users = utils.createUsers(USER_COUNT);
@@ -420,8 +416,7 @@ contract TestRedemptionPool is BaseFixture {
     function testMultiUserDepositsAndClaimsEntropy(
         uint256 _assetAmount
     ) public {
-        vm.assume(_assetAmount > 1e8);
-        vm.assume(_assetAmount < 1_000_000_000e8);
+        _assetAmount = bound(_assetAmount, 1e8, 1_000_000_000e8);
 
         // Generate users:
         address payable[] memory _users = utils.createUsers(USER_COUNT);
@@ -516,8 +511,7 @@ contract TestRedemptionPool is BaseFixture {
     function testMultiUserDepositsAndClaimsEntropyWithDAOTopUps(
         uint256 _assetAmount
     ) public {
-        vm.assume(_assetAmount > 1e8);
-        vm.assume(_assetAmount < 1_000_000_000e8);
+        _assetAmount = bound(_assetAmount, 1e8, 1_000_000_000e8);
 
         // Generate users:
         address payable[] memory _users = utils.createUsers(USER_COUNT);
