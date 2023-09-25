@@ -6,6 +6,7 @@ import {RedemptionErrors} from "../src/Errors.sol";
 
 contract TestRedemptionPool is BaseFixture {
     uint256 public constant USER_COUNT = 10;
+    uint256 public constant TWENTY_PRECISION = 1e20;
 
     function setUp() public override {
         super.setUp();
@@ -184,7 +185,7 @@ contract TestRedemptionPool is BaseFixture {
         // Convert finalClaim from CUSDC to USDC
         uint256 USDCperCUSDC = ICERC20(CUSDC).exchangeRateStored();
         console2.log("finalClaim: %s", finalClaim);
-        uint256 finalClaimUSDC = (finalClaim * USDCperCUSDC) / 1e20;
+        uint256 finalClaimUSDC = (finalClaim * USDCperCUSDC) / TWENTY_PRECISION;
         console2.log("finalClaimUSDC: %s", finalClaimUSDC);
         console2.log("USDC in alice' wallet: %s", USDC.balanceOf(alice));
 
@@ -258,11 +259,12 @@ contract TestRedemptionPool is BaseFixture {
         console2.log(
             "redemptionPool's CUSDC converted into USDC: %s",
             (CUSDC.balanceOf(address(redemptionPool)) *
-                ICERC20(CUSDC).exchangeRateStored()) / 1e20
+                ICERC20(CUSDC).exchangeRateStored()) / TWENTY_PRECISION
         );
         console2.log(
             "_assetAmount CUSDC converted into USDC: %s",
-            (_assetAmount * ICERC20(CUSDC).exchangeRateStored()) / 1e20
+            (_assetAmount * ICERC20(CUSDC).exchangeRateStored()) /
+                TWENTY_PRECISION
         );
         console2.log(
             "alice's getSharesAvailable in redemptionpool",
@@ -397,7 +399,7 @@ contract TestRedemptionPool is BaseFixture {
             assertApproxEqAbs(
                 USDC.balanceOf(_users[i]),
                 ((_assetAmount / USER_COUNT) *
-                    ICERC20(CUSDC).exchangeRateStored()) / 1e20,
+                    ICERC20(CUSDC).exchangeRateStored()) / TWENTY_PRECISION,
                 1e1,
                 "User did not get correct amount of USDC"
             );
@@ -490,7 +492,7 @@ contract TestRedemptionPool is BaseFixture {
             assertApproxEqAbs(
                 USDC.balanceOf(_users[i]),
                 (((_deposits[i] * _assetAmount) / redemptionPool.totalGRO()) *
-                    ICERC20(CUSDC).exchangeRateStored()) / 1e20,
+                    ICERC20(CUSDC).exchangeRateStored()) / TWENTY_PRECISION,
                 1e1,
                 "User did not get correct amount of USDC"
             );
@@ -583,7 +585,7 @@ contract TestRedemptionPool is BaseFixture {
             assertApproxEqAbs(
                 USDC.balanceOf(_users[i]),
                 (((_deposits[i] * _assetAmount) / redemptionPool.totalGRO()) *
-                    ICERC20(CUSDC).exchangeRateStored()) / 1e20,
+                    ICERC20(CUSDC).exchangeRateStored()) / TWENTY_PRECISION,
                 1e1,
                 "User did not get correct amount of USDC in first claim"
             );
@@ -600,7 +602,7 @@ contract TestRedemptionPool is BaseFixture {
             // Add the first round claims to the calculated claims for this round
             uint256 totalExpectedUSDC = (((_deposits[i] * _assetAmount * 2) /
                 redemptionPool.totalGRO()) *
-                ICERC20(CUSDC).exchangeRateStored()) / 1e20;
+                ICERC20(CUSDC).exchangeRateStored()) / TWENTY_PRECISION;
 
             // Check user USDC balance is proportional to the amount of GRO deposited
             assertApproxEqAbs(

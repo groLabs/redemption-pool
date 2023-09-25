@@ -28,6 +28,7 @@ contract RedemptionPool is Ownable {
     uint256 public immutable DEADLINE;
     uint256 internal constant PRECISION = 1e18;
     uint256 internal constant TINY_PRECISION = 1e2;
+    uint256 internal constant TWENTY_PRECISION = 1e20;
     address internal constant DAO =
         address(0x359F4fe841f246a095a82cb26F5819E10a91fe0d);
 
@@ -172,11 +173,9 @@ contract RedemptionPool is Ownable {
         // Get the amount of cUSDC tokens available for the user to claim
         uint256 userClaim = getSharesAvailable(msg.sender);
 
-        // Cap the user's claim to the available balance of cUSDC tokens
-        if (_amount > userClaim) _amount = userClaim;
-
-        // Revert if nothing to claim
-        if (_amount == 0) revert RedemptionErrors.InsufficientBalance();
+        // Check that _amount is greater than 0 and smaller (or equal to) than userClaim
+        if (!(_amount > 0 && _amount <= userClaim))
+            revert RedemptionErrors.InvalidClaim();
 
         // Redeem the user's cUSDC tokens for USDC tokens
         // and transfer the USDC tokens to the user's address
@@ -184,10 +183,10 @@ contract RedemptionPool is Ownable {
         if (redeemResult != 0)
             revert RedemptionErrors.USDCRedeemFailed(redeemResult);
 
-        uint256 usdcAmount = (ICERC20(CUSDC).exchangeRateStored() * _amount) /
-            1e20;
-
-        IERC20(USDC).safeTransfer(msg.sender, usdcAmount);
+        IERC20(USDC).safeTransfer(
+            msg.sender,
+            IERC20(USDC).balanceOf(address(this))
+        );
 
         // Adjust the user's and the cumulative tally of claimed cUSDC
         _userClaims[msg.sender] += _amount;

@@ -5,9 +5,9 @@ library RedemptionErrors {
     error DeadlineExceeded();
     error ClaimsPeriodNotStarted();
     error GreaterThanZeroOnly();
-    error InsufficientBalance();
+    error InvalidClaim();
     error USDCRedeemFailed(uint256 redeemResult);
 
     error NoSweepGro();
-    error NoUserBalance();
+    error InsufficientBalance();
 }
