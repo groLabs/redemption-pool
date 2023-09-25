@@ -145,6 +145,8 @@ contract TestRedemptionPool is BaseFixture {
         // Pull assets from the DAO
         pullCUSDC(_assetAmount);
 
+        // Test USDC per GRO:
+        assertEq(redemptionPool.getUSDCperGRO(), _assetAmount * ICERC20(CUSDC).exchangeRateStored() / _depositAmnt);
         // Check user's shares
         assertEq(redemptionPool.getSharesAvailable(alice), _assetAmount);
 
@@ -163,6 +165,7 @@ contract TestRedemptionPool is BaseFixture {
         uint256 finalClaimUSDC = (allShares * USDCperCUSDC) / 1e18;
 
         assertApproxEqAbs(USDC.balanceOf(alice), finalClaimUSDC, 1e1);
+
     }
 
     function testCantClaimIfDidntDeposit(uint256 _depositAmnt, uint256 _assetAmount) public {
