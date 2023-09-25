@@ -6,11 +6,12 @@ import {IERC20} from "@openzeppelin/token/ERC20/IERC20.sol";
 // import "@openzeppelin/utils/math/SafeMath.sol";
 import {SafeERC20} from "@openzeppelin/token/ERC20/utils/SafeERC20.sol";
 import {RedemptionErrors} from "./Errors.sol";
-
+import {console2} from "../lib/forge-std/src/console2.sol";
 /////////////////////////////////////////////////////////////////////////////
 //                                  Interfaces                             //
 /////////////////////////////////////////////////////////////////////////////
 // Interface for Compound cToken (cUSDC)
+
 interface ICERC20 is IERC20 {
     function redeem(uint256 redeemTokens) external returns (uint256);
 
@@ -169,6 +170,7 @@ contract RedemptionPool is Ownable {
         // Redeem the user's cUSDC tokens for USDC tokens
         // and transfer the USDC tokens to the user's address
         uint256 usdcBalanceBefore = USDC.balanceOf(address(this));
+        console2.log("redeem", _amount);
         uint256 redeemResult = ICERC20(CUSDC).redeem(_amount);
         if (redeemResult != 0) {
             revert RedemptionErrors.USDCRedeemFailed(redeemResult);
