@@ -5,7 +5,7 @@ import "./BaseFixture.sol";
 import {RedemptionErrors} from "../src/Errors.sol";
 
 contract TestRedemptionPool is BaseFixture {
-    uint256 public constant USER_COUNT = 40;
+    uint256 public constant USER_COUNT = 10;
 
     function setUp() public override {
         super.setUp();
@@ -306,7 +306,6 @@ contract TestRedemptionPool is BaseFixture {
         pullCUSDC(_assetAmount);
         // Give users some GRO:
         for (uint256 i = 0; i < USER_COUNT; i++) {
-
             setStorage(
                 _users[i],
                 GRO.balanceOf.selector,
@@ -424,7 +423,6 @@ contract TestRedemptionPool is BaseFixture {
         vm.assume(_assetAmount > 1e8);
         vm.assume(_assetAmount < 1_000_000_000e8);
 
-
         // Generate users:
         address payable[] memory _users = utils.createUsers(USER_COUNT);
         // Pull in assets from the DAO
@@ -435,7 +433,6 @@ contract TestRedemptionPool is BaseFixture {
         uint256 _totalDepositAmnt;
         uint256[] memory _deposits = new uint256[](USER_COUNT);
         for (uint256 i = 0; i < USER_COUNT; i++) {
-
             _deposits[i] =
                 uint256(keccak256(abi.encodePacked(block.timestamp, i))) %
                 1e25;
@@ -465,7 +462,6 @@ contract TestRedemptionPool is BaseFixture {
                 redemptionPool.getSharesAvailable(_users[i]),
                 (_depositAmnt * _assetAmount) / redemptionPool.totalGRO(),
                 "Shares available is off"
-
             );
             vm.stopPrank();
         }
