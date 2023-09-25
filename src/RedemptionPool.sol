@@ -179,6 +179,7 @@ contract RedemptionPool is Ownable {
 
         // Redeem the user's cUSDC tokens for USDC tokens
         // and transfer the USDC tokens to the user's address
+
         uint256 redeemResult = ICERC20(CUSDC).redeem(_amount);
         if (redeemResult != 0)
             revert RedemptionErrors.USDCRedeemFailed(redeemResult);
@@ -224,6 +225,8 @@ contract RedemptionPool is Ownable {
     // @notice Transfers a portion or all of a user's redeemable GRO position to a new address.
     // @param to The address to which the GRO position will be transferred.
     // @param amount The amount of GRO to transfer.
+    // THIS FUNCTION IS BORKED AND NEEDS REWRITING. GRO != cUSDC
+    /*
     function transferPosition(address _to, uint256 _amount) public {
         if (_amount > (_userGROBalance[msg.sender] - _userClaims[msg.sender]))
             revert RedemptionErrors.InsufficientBalance();
@@ -232,5 +235,5 @@ contract RedemptionPool is Ownable {
         _userGROBalance[_to] += _amount;
 
         emit PositionTransferred(msg.sender, _to, _amount);
-    }
+    }*/
 }
