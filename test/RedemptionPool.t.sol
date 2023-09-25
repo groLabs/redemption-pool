@@ -165,7 +165,6 @@ contract TestRedemptionPool is BaseFixture {
         uint256 finalClaimUSDC = (allShares * USDCperCUSDC) / 1e18;
 
         assertApproxEqAbs(USDC.balanceOf(alice), finalClaimUSDC, 1e1);
-
     }
 
     function testCantClaimIfDidntDeposit(uint256 _depositAmnt, uint256 _assetAmount) public {
