@@ -182,6 +182,22 @@ contract RedemptionPool is Ownable {
         emit Claim(msg.sender, _amount);
     }
 
+    /// @notice Transfer user position somewhere else
+    /// @param _to address of the user to transfer the position to
+    /// @param _amount amount of GRO tokens to transfer
+    function transferPosition(address _to, uint256 _amount) external {
+        // Check that the user has enough GRO tokens to transfer
+        if (_userGROBalance[msg.sender] < _amount) {
+            revert RedemptionErrors.InsufficientBalance();
+        }
+
+        // Decrease the balance of the sender by the amount
+        _userGROBalance[msg.sender] -= _amount;
+        // Increase the balance of the recipient by the amount
+        _userGROBalance[_to] += _amount;
+        emit PositionTransferred(msg.sender, _to, _amount);
+    }
+
     /////////////////////////////////////////////////////////////////////////////
     //                              Permissioned funcs                         //
     /////////////////////////////////////////////////////////////////////////////

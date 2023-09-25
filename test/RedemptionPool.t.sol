@@ -413,4 +413,64 @@ contract TestRedemptionPool is BaseFixture {
         // Check that all CUSDC was claimed:
         assertApproxEqAbs(CUSDC.balanceOf(address(redemptionPool)), 0, 1e1);
     }
+    /////////////////////////////////////////////////////////////////////////////
+    //                 Transfer position tests                                 //
+    /////////////////////////////////////////////////////////////////////////////
+
+    function testTransferPosition(uint256 _depositAmnt, uint256 _assetAmount) public {
+        _depositAmnt = bound(_depositAmnt, 1e18, 100_000_000e18);
+        _assetAmount = bound(_assetAmount, 1e8, 1_000_000_000e8);
+
+        // Pull in assets from the DAO
+        pullCUSDC(_assetAmount);
+
+        // Give user some GRO:
+        setStorage(alice, GRO.balanceOf.selector, address(GRO), _depositAmnt);
+
+        // Approve GRO to be spent by the RedemptionPool:
+        vm.prank(alice);
+        GRO.approve(address(redemptionPool), _depositAmnt);
+
+        // Deposit GRO into the RedemptionPool:
+        vm.prank(alice);
+        redemptionPool.deposit(_depositAmnt);
+
+        // Check user balance
+        uint256 aliceBalance = redemptionPool.getUserBalance(alice);
+        assertEq(aliceBalance, _depositAmnt);
+
+        // Now, alice wants to transfer her position to bob
+        vm.prank(alice);
+        redemptionPool.transferPosition(bob, aliceBalance);
+
+        // Make sure alice has no balance
+        assertEq(redemptionPool.getUserBalance(alice), 0);
+        // Make sure bob has the balance
+        assertEq(redemptionPool.getUserBalance(bob), aliceBalance);
+    }
+
+    function testTransferPositionUnhappy(uint256 _depositAmnt, uint256 _assetAmount) public {
+        _depositAmnt = bound(_depositAmnt, 1e18, 100_000_000e18);
+        _assetAmount = bound(_assetAmount, 1e8, 1_000_000_000e8);
+
+        // Pull in assets from the DAO
+        pullCUSDC(_assetAmount);
+
+        // Give user some GRO:
+        setStorage(alice, GRO.balanceOf.selector, address(GRO), _depositAmnt);
+
+        // Approve GRO to be spent by the RedemptionPool:
+        vm.prank(alice);
+        GRO.approve(address(redemptionPool), _depositAmnt);
+
+        // Deposit GRO into the RedemptionPool:
+        vm.prank(alice);
+        redemptionPool.deposit(_depositAmnt);
+
+        // Alice tries to transfer more than she has
+        vm.startPrank(alice);
+        vm.expectRevert(abi.encodeWithSelector(RedemptionErrors.InsufficientBalance.selector));
+        redemptionPool.transferPosition(bob, _depositAmnt + 1);
+        vm.stopPrank();
+    }
 }
