@@ -69,7 +69,6 @@ contract RedemptionPool is Ownable {
     event Withdraw(address indexed user, uint256 amount);
     event Claim(address indexed user, uint256 amount);
     event CUSDCDeposit(uint256 amount);
-    event PositionTransferred(address indexed from, address indexed to, uint256 amount);
 
     /////////////////////////////////////////////////////////////////////////////
     //                                  CONSTRUCTOR                            //
