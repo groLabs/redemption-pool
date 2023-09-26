@@ -153,6 +153,10 @@ contract TestRedemptionPool is BaseFixture {
         // Check ppfs
         uint256 expectedPpfs = (_assetAmount * 1e18) / _depositAmnt;
         assertEq(redemptionPool.getPricePerShare(), expectedPpfs);
+        assertEq(
+            redemptionPool.getPricePerShareUSDC(),
+            redemptionPool.totalCUSDCDeposited() * ICERC20(CUSDC).exchangeRateStored() / _depositAmnt
+        );
 
         // Roll to deadline and claim
         vm.warp(redemptionPool.DEADLINE() + 1);
