@@ -65,7 +65,8 @@ contract RedemptionPool is Ownable {
     /////////////////////////////////////////////////////////////////////////////
     //                                  Events                                 //
     /////////////////////////////////////////////////////////////////////////////
-
+    event Deposit(address indexed user, uint256 amount);
+    event TotalGRODeposited(uint256 amount);
     event Withdraw(address indexed user, uint256 amount);
     event Claim(address indexed user, uint256 amount);
     event CUSDCDeposit(uint256 amount);
@@ -84,14 +85,19 @@ contract RedemptionPool is Ownable {
     //                                   VIEWS                                 //
     /////////////////////////////////////////////////////////////////////////////
 
-    /// @notice Returns the price per share of the pool in terms of USDC
+    /// @notice Returns the price per share of the pool in terms of CUSDC
     function getPricePerShare() public view returns (uint256) {
         return (totalCUSDCDeposited * PRECISION) / totalGRO;
     }
 
     /// @notice Returns the price per share of the pool in terms of USDC
+    function getPricePerShareUSDC() public view returns (uint256) {
+        return (totalCUSDCDeposited * ICERC20(CUSDC).exchangeRateStored()) / totalGRO;
+    }
+
+    /// @notice Returns the price per share of the pool in terms of USDC
     function getUSDCperGRO() public view returns (uint256) {
-        // Get the exchange rate from cUSDC to USDC (18 decimals)
+        // Get the exchange rate from cUSDC to USDC (16 decimals) as exchangeRateStored is normalized for USDC
         uint256 USDCperCUSDC = ICERC20(CUSDC).exchangeRateStored();
 
         // Calculate USDC per GRO (result will have 6 decimals)
@@ -134,6 +140,8 @@ contract RedemptionPool is Ownable {
         _userGROBalance[msg.sender] += _amount;
         // Increases the total deposited by the amount
         totalGRO += _amount;
+        emit Deposit(msg.sender, _amount);
+        emit TotalGRODeposited(totalGRO);
     }
 
     /// @notice withdraw deposited GRO tokens before the deadline
