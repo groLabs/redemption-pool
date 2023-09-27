@@ -97,7 +97,7 @@ contract RedemptionPool is Ownable {
 
     /// @notice Returns the price per share of the pool in terms of USDC
     function getUSDCperGRO() public view returns (uint256) {
-        // Get the exchange rate from cUSDC to USDC (18 decimals)
+        // Get the exchange rate from cUSDC to USDC (16 decimals) as exchangeRateStored is normalized for USDC
         uint256 USDCperCUSDC = ICERC20(CUSDC).exchangeRateStored();
 
         // Calculate USDC per GRO (result will have 6 decimals)
