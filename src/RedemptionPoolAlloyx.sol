@@ -17,9 +17,10 @@ contract RedemptionPoolAlloyX is Ownable {
     //                                  Constants                              //
     /////////////////////////////////////////////////////////////////////////////
 
-    uint256 public constant DURATION = 28 days;
+    uint256 public constant DURATION = 14 days;
     uint256 public immutable DEADLINE;
-    uint256 internal constant PRECISION = 1e18;
+    // USDC has 6 decimals
+    uint256 internal constant PRECISION = 1e6;
     address internal constant DAO = address(0x359F4fe841f246a095a82cb26F5819E10a91fe0d);
 
     // TOKENS
@@ -176,9 +177,15 @@ contract RedemptionPoolAlloyX is Ownable {
     /// @param _token address of the token to sweep
     function sweep(address _token) external onlyOwner onlyBeforeDeadline {
         // Do not allow to sweep ALLOYX tokens
-        if (_token == address(ALLOYX)) revert RedemptionErrors.NoSweepAlloyx();
+        if (_token == address(USDC)) revert RedemptionErrors.NoSweepUSDC();
 
         // Transfers the tokens to the owner
         IERC20(_token).safeTransfer(owner(), IERC20(_token).balanceOf(address(this)));
+    }
+
+    /// @notice Allow DAO to withdraw USDC tokens after the deadline
+    /// @param _amount amount of USDC to withdraw
+    function withdrawUSDC(uint256 _amount) external onlyOwner onlyAfterDeadline {
+        USDC.safeTransfer(owner(), _amount);
     }
 }
