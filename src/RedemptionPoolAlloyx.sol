@@ -146,9 +146,8 @@ contract RedemptionPoolAlloyX is Ownable {
         if (_amount == 0) revert RedemptionErrors.InvalidClaim();
         // Get the amount of ALLOYX tokens available for the user to claim
         uint256 userClaim = getSharesAvailable(msg.sender);
-
         // Check that _amount is greater than 0 and smaller (or equal to) than userClaim
-        if (_amount >= userClaim) {
+        if (_amount > userClaim) {
             revert RedemptionErrors.InvalidClaim();
         }
         ALLOYX.safeTransfer(msg.sender, _amount);
