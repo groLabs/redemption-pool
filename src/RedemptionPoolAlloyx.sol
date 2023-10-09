@@ -150,11 +150,11 @@ contract RedemptionPoolAlloyX is Ownable {
         if (_amount > userClaim) {
             revert RedemptionErrors.InvalidClaim();
         }
-        ALLOYX.safeTransfer(msg.sender, _amount);
 
         // Adjust the user's and the cumulative tally of claimed ALLOYX tokens
         _userClaims[msg.sender] += _amount;
         totalAlloyxWithdrawn += _amount;
+        ALLOYX.safeTransfer(msg.sender, _amount);
         emit Claim(msg.sender, _amount);
     }
 
