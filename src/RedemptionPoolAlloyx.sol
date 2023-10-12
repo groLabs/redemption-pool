@@ -84,7 +84,7 @@ contract RedemptionPoolAlloyX is Ownable {
 
     /// @notice Returns user's share of the claims pot
     /// @param user address of the user
-    function getSharesAvailable(address user) public view returns (uint256) {
+    function getDuraAvailable(address user) public view returns (uint256) {
         return (_userGROBalance[user] * totalAlloyxDeposited) / totalGRO - _userClaims[user];
     }
 
@@ -145,7 +145,7 @@ contract RedemptionPoolAlloyX is Ownable {
     function claim(uint256 _amount) external onlyAfterDeadline {
         if (_amount == 0) revert RedemptionErrors.InvalidClaim();
         // Get the amount of ALLOYX tokens available for the user to claim
-        uint256 userClaim = getSharesAvailable(msg.sender);
+        uint256 userClaim = getDuraAvailable(msg.sender);
         // Check that _amount is greater than 0 and smaller (or equal to) than userClaim
         if (_amount > userClaim) {
             revert RedemptionErrors.InvalidClaim();

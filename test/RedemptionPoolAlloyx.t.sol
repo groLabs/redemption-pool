@@ -151,7 +151,7 @@ contract TestRedemptionPool is BaseFixture {
         // Test ALLOYX per GRO:
         assertEq(redemptionPoolAlloyX.getDURAPerGRO(), _assetAmount * 1e18 / _depositAmnt);
         // Check user's shares
-        assertEq(redemptionPoolAlloyX.getSharesAvailable(alice), _assetAmount);
+        assertEq(redemptionPoolAlloyX.getDuraAvailable(alice), _assetAmount);
 
         // Check ppfs
         uint256 expectedPpfs = (_assetAmount * 1e18) / _depositAmnt;
@@ -161,9 +161,9 @@ contract TestRedemptionPool is BaseFixture {
         vm.warp(redemptionPoolAlloyX.DEADLINE() + 1);
 
         // Check that user shares == amount of ALLOYX in the pool
-        assertEq(redemptionPoolAlloyX.getSharesAvailable(alice), _assetAmount);
+        assertEq(redemptionPoolAlloyX.getDuraAvailable(alice), _assetAmount);
         vm.startPrank(alice);
-        uint256 allShares = redemptionPoolAlloyX.getSharesAvailable(alice);
+        uint256 allShares = redemptionPoolAlloyX.getDuraAvailable(alice);
         redemptionPoolAlloyX.claim(allShares);
         vm.stopPrank();
 
@@ -237,7 +237,7 @@ contract TestRedemptionPool is BaseFixture {
 
             assertApproxEqAbs(redemptionPoolAlloyX.getUserBalance(_users[i]), _depositAmnt, 1e1);
             assertEq(
-                redemptionPoolAlloyX.getSharesAvailable(_users[i]),
+                redemptionPoolAlloyX.getDuraAvailable(_users[i]),
                 (_depositAmnt * _assetAmount) / redemptionPoolAlloyX.totalGRO()
             );
 
@@ -292,7 +292,7 @@ contract TestRedemptionPool is BaseFixture {
 
             assertEq(redemptionPoolAlloyX.getUserBalance(_users[i]), _depositAmnt);
             assertEq(
-                redemptionPoolAlloyX.getSharesAvailable(_users[i]),
+                redemptionPoolAlloyX.getDuraAvailable(_users[i]),
                 (_depositAmnt * _assetAmount) / redemptionPoolAlloyX.totalGRO()
             );
             vm.stopPrank();
@@ -300,7 +300,7 @@ contract TestRedemptionPool is BaseFixture {
         // Check that Alloy amount shares are proportional to the amount of GRO deposited
         for (uint256 i = 0; i < USER_COUNT; i++) {
             uint256 approxAlloy = (_deposits[i] * _assetAmount) / _totalDepositAmnt;
-            assertEq(redemptionPoolAlloyX.getSharesAvailable(_users[i]), approxAlloy);
+            assertEq(redemptionPoolAlloyX.getDuraAvailable(_users[i]), approxAlloy);
         }
         assertEq(GRO.balanceOf(address(redemptionPoolAlloyX)), _totalDepositAmnt, "Incorrect total GRO in contract");
         assertEq(redemptionPoolAlloyX.totalGRO(), _totalDepositAmnt, "Incorrect total GRO in _totalDepositAmnt");
