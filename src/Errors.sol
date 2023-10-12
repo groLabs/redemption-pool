@@ -9,6 +9,5 @@ library RedemptionErrors {
     error USDCRedeemFailed(uint256 redeemResult);
 
     error NoSweepGro();
-    error NoSweepUSDC();
     error InsufficientBalance();
 }

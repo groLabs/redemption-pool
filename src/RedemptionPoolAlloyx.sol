@@ -19,12 +19,12 @@ contract RedemptionPoolAlloyX is Ownable {
 
     uint256 public constant DURATION = 14 days;
     uint256 public immutable DEADLINE;
-    // USDC has 6 decimals
-    uint256 internal constant PRECISION = 1e6;
+    // GRO has 18 decimals
+    uint256 internal constant PRECISION = 1e18;
     address internal constant DAO = address(0x359F4fe841f246a095a82cb26F5819E10a91fe0d);
 
     // TOKENS
-    IERC20 public constant USDC = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
+    IERC20 public constant GRO = IERC20(0x3Ec8798B81485A254928B70CDA1cf0A2BB0B74D7);
     IERC20 public constant ALLOYX = IERC20(0x4562724cAa90d866c35855b9baF71E5125CAD5B6);
 
     /////////////////////////////////////////////////////////////////////////////
@@ -48,9 +48,9 @@ contract RedemptionPoolAlloyX is Ownable {
     //                                  Storage                                //
     /////////////////////////////////////////////////////////////////////////////
 
-    mapping(address => uint256) private _userUSDCBalance;
+    mapping(address => uint256) private _userGROBalance;
     mapping(address => uint256) private _userClaims;
-    uint256 public totalUSDC;
+    uint256 public totalGRO;
     uint256 public totalAlloyxDeposited;
     uint256 public totalAlloyxWithdrawn;
 
@@ -58,7 +58,7 @@ contract RedemptionPoolAlloyX is Ownable {
     //                                  Events                                 //
     /////////////////////////////////////////////////////////////////////////////
     event Deposit(address indexed user, uint256 amount);
-    event TotalUSDCDeposited(uint256 amount);
+    event TotalGRODeposited(uint256 amount);
     event Withdraw(address indexed user, uint256 amount);
     event Claim(address indexed user, uint256 amount);
     event AlloyxDeposit(uint256 amount);
@@ -79,19 +79,19 @@ contract RedemptionPoolAlloyX is Ownable {
 
     /// @notice Returns the price per share of the pool in terms of ALLOYX
     function getPricePerShare() public view returns (uint256) {
-        return (totalAlloyxDeposited * PRECISION) / totalUSDC;
+        return (totalAlloyxDeposited * PRECISION) / totalGRO;
     }
 
     /// @notice Returns user's share of the claims pot
     /// @param user address of the user
     function getSharesAvailable(address user) public view returns (uint256) {
-        return (_userUSDCBalance[user] * totalAlloyxDeposited) / totalUSDC - _userClaims[user];
+        return (_userGROBalance[user] * totalAlloyxDeposited) / totalGRO - _userClaims[user];
     }
 
-    /// @notice Returns the amount of USDC user has deposited
+    /// @notice Returns the amount of GRO user has deposited
     /// @param user address of the user
     function getUserBalance(address user) external view returns (uint256) {
-        return _userUSDCBalance[user];
+        return _userGROBalance[user];
     }
 
     /// @notice Returns claimed Alloyx for a user
@@ -109,37 +109,37 @@ contract RedemptionPoolAlloyX is Ownable {
     //                                  CORE                                   //
     /////////////////////////////////////////////////////////////////////////////
 
-    /// @notice deposit USDC tokens
-    /// @param _amount amount of USDC tokens to deposit
+    /// @notice deposit GRO tokens
+    /// @param _amount amount of GRO tokens to deposit
     function deposit(uint256 _amount) external onlyBeforeDeadline {
-        // Transfers the USDC tokens from the sender to this contract
-        USDC.safeTransferFrom(msg.sender, address(this), _amount);
+        // Transfers the GRO tokens from the sender to this contract
+        GRO.safeTransferFrom(msg.sender, address(this), _amount);
         // Increases the balance of the sender by the amount
-        _userUSDCBalance[msg.sender] += _amount;
+        _userGROBalance[msg.sender] += _amount;
         // Increases the total deposited by the amount
-        totalUSDC += _amount;
+        totalGRO += _amount;
         emit Deposit(msg.sender, _amount);
-        emit TotalUSDCDeposited(totalUSDC);
+        emit TotalGRODeposited(totalGRO);
     }
 
-    /// @notice withdraw deposited USDC tokens before the deadline
-    /// @param _amount amount of USDC tokens to withdraw
+    /// @notice withdraw deposited GRO tokens before the deadline
+    /// @param _amount amount of GRO tokens to withdraw
     function withdraw(uint256 _amount) external onlyBeforeDeadline {
-        if (_userUSDCBalance[msg.sender] < _amount) {
+        if (_userGROBalance[msg.sender] < _amount) {
             revert RedemptionErrors.InsufficientBalance();
         }
 
-        _userUSDCBalance[msg.sender] -= _amount;
-        totalUSDC -= _amount;
-        USDC.safeTransfer(msg.sender, _amount);
+        _userGROBalance[msg.sender] -= _amount;
+        totalGRO -= _amount;
+        GRO.safeTransfer(msg.sender, _amount);
         emit Withdraw(msg.sender, _amount);
     }
 
     /**
-     * @notice Allow users to claim their share of Alloyx tokens based on the amount of USDC tokens they have deposited
-     * @dev Users must have a positive USDC token balance and a non-zero claim available to make a claim
-     * @dev The deadline for making USDC deposits must have passed
-     * @dev Redeems the user's Alloyx tokens for an equivalent amount of USDC tokens and transfers them to the user's address
+     * @notice Allow users to claim their share of Alloyx tokens based on the amount of GRO tokens they have deposited
+     * @dev Users must have a positive GRO token balance and a non-zero claim available to make a claim
+     * @dev The deadline for making GRO deposits must have passed
+     * @dev Redeems the user's Alloyx tokens for an equivalent amount of GRO tokens and transfers them to the user's address
      * @dev Decreases the user's claims and contract accounting by the amount claimed
      */
     function claim(uint256 _amount) external onlyAfterDeadline {
@@ -176,15 +176,15 @@ contract RedemptionPoolAlloyX is Ownable {
     /// @param _token address of the token to sweep
     function sweep(address _token) external onlyOwner onlyBeforeDeadline {
         // Do not allow to sweep ALLOYX tokens
-        if (_token == address(USDC)) revert RedemptionErrors.NoSweepUSDC();
+        if (_token == address(GRO)) revert RedemptionErrors.NoSweepGro();
 
         // Transfers the tokens to the owner
         IERC20(_token).safeTransfer(owner(), IERC20(_token).balanceOf(address(this)));
     }
 
-    /// @notice Allow DAO to withdraw USDC tokens after the deadline
-    /// @param _amount amount of USDC to withdraw
-    function withdrawUSDC(uint256 _amount) external onlyOwner onlyAfterDeadline {
-        USDC.safeTransfer(owner(), _amount);
+    /// @notice Allow DAO to withdraw GRO tokens after the deadline
+    /// @param _amount amount of GRO to withdraw
+    function withdrawGRO(uint256 _amount) external onlyOwner onlyAfterDeadline {
+        GRO.safeTransfer(owner(), _amount);
     }
 }
