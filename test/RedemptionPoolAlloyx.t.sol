@@ -149,13 +149,13 @@ contract TestRedemptionPool is BaseFixture {
         pullAlloyx(_assetAmount);
 
         // Test ALLOYX per GRO:
-        assertEq(redemptionPoolAlloyX.getPricePerShare(), _assetAmount * 1e18 / _depositAmnt);
+        assertEq(redemptionPoolAlloyX.getDURAPerGRO(), _assetAmount * 1e18 / _depositAmnt);
         // Check user's shares
         assertEq(redemptionPoolAlloyX.getSharesAvailable(alice), _assetAmount);
 
         // Check ppfs
         uint256 expectedPpfs = (_assetAmount * 1e18) / _depositAmnt;
-        assertEq(redemptionPoolAlloyX.getPricePerShare(), expectedPpfs);
+        assertEq(redemptionPoolAlloyX.getDURAPerGRO(), expectedPpfs);
 
         // Roll to deadline and claim
         vm.warp(redemptionPoolAlloyX.DEADLINE() + 1);
@@ -247,7 +247,7 @@ contract TestRedemptionPool is BaseFixture {
         assertEq(redemptionPoolAlloyX.totalGRO(), _depositAmnt * USER_COUNT);
         // Check that the total amount of CUSDC deposited is equal to the amount pulled from the DAO
         assertEq(ALLOYX.balanceOf(address(redemptionPoolAlloyX)), _assetAmount);
-        assertEq(redemptionPoolAlloyX.getPricePerShare(), (_assetAmount * 1e18) / redemptionPoolAlloyX.totalGRO());
+        assertEq(redemptionPoolAlloyX.getDURAPerGRO(), (_assetAmount * 1e18) / redemptionPoolAlloyX.totalGRO());
 
         // Warp to deadline
         vm.warp(redemptionPoolAlloyX.DEADLINE() + 1);
@@ -305,7 +305,7 @@ contract TestRedemptionPool is BaseFixture {
         assertEq(GRO.balanceOf(address(redemptionPoolAlloyX)), _totalDepositAmnt, "Incorrect total GRO in contract");
         assertEq(redemptionPoolAlloyX.totalGRO(), _totalDepositAmnt, "Incorrect total GRO in _totalDepositAmnt");
         assertEq(
-            redemptionPoolAlloyX.getPricePerShare(),
+            redemptionPoolAlloyX.getDURAPerGRO(),
             (_assetAmount * 1e18) / redemptionPoolAlloyX.totalGRO(),
             "Incorrect price per share"
         );

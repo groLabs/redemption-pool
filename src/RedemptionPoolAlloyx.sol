@@ -78,7 +78,7 @@ contract RedemptionPoolAlloyX is Ownable {
     /////////////////////////////////////////////////////////////////////////////
 
     /// @notice Returns the price per share of the pool in terms of ALLOYX
-    function getPricePerShare() public view returns (uint256) {
+    function getDURAPerGRO() public view returns (uint256) {
         return (totalAlloyxDeposited * PRECISION) / totalGRO;
     }
 
