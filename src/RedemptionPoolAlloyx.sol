@@ -181,10 +181,4 @@ contract RedemptionPoolAlloyX is Ownable {
         // Transfers the tokens to the owner
         IERC20(_token).safeTransfer(owner(), IERC20(_token).balanceOf(address(this)));
     }
-
-    /// @notice Allow DAO to withdraw GRO tokens after the deadline
-    /// @param _amount amount of GRO to withdraw
-    function withdrawGRO(uint256 _amount) external onlyOwner onlyAfterDeadline {
-        GRO.safeTransfer(owner(), _amount);
-    }
 }
