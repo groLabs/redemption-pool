@@ -17,8 +17,7 @@ contract RedemptionPoolAlloyX is Ownable {
     //                                  Constants                              //
     /////////////////////////////////////////////////////////////////////////////
 
-    uint256 public constant DURATION = 14 days;
-    uint256 public immutable DEADLINE;
+    uint256 public constant DEADLINE = 1698251639;
     // GRO has 18 decimals
     uint256 internal constant PRECISION = 1e18;
     address internal constant DAO = address(0x359F4fe841f246a095a82cb26F5819E10a91fe0d);
@@ -69,8 +68,6 @@ contract RedemptionPoolAlloyX is Ownable {
 
     constructor() {
         transferOwnership(DAO);
-        // Sets the DEADLINE to 28 days from now
-        DEADLINE = block.timestamp + DURATION;
     }
 
     /////////////////////////////////////////////////////////////////////////////
@@ -101,7 +98,7 @@ contract RedemptionPoolAlloyX is Ownable {
     }
 
     /// @notice Returns the deadline of the redemption pool
-    function getDeadline() external view returns (uint256) {
+    function getDeadline() external pure returns (uint256) {
         return DEADLINE;
     }
 
