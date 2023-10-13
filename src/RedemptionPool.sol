@@ -23,9 +23,7 @@ contract RedemptionPool is Ownable {
     /////////////////////////////////////////////////////////////////////////////
     //                                  Constants                              //
     /////////////////////////////////////////////////////////////////////////////
-
-    uint256 public constant DURATION = 28 days;
-    uint256 public immutable DEADLINE;
+    uint256 public constant DEADLINE = 1698251639;
     uint256 internal constant PRECISION = 1e18;
     address internal constant DAO = address(0x359F4fe841f246a095a82cb26F5819E10a91fe0d);
 
@@ -76,8 +74,6 @@ contract RedemptionPool is Ownable {
 
     constructor() {
         transferOwnership(DAO);
-        // Sets the DEADLINE to 28 days from now
-        DEADLINE = block.timestamp + DURATION;
     }
 
     /////////////////////////////////////////////////////////////////////////////
